@@ -1,0 +1,9 @@
+# OmniCore - yerel geliştirme için Redis
+# Kullanım: docker compose up -d
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: omnicore-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped

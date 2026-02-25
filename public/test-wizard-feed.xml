@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <item>
+        <urun_id>1001</urun_id>
+        <urun_adi>Erkek Slim Fit Pamuklu Gömlek</urun_adi>
+        <marka_adi>OmniStyle</marka_adi>
+        <kategori_yolu>Giyim > Erkek > Gömlek</kategori_yolu>
+        <barkod_no>8680000001001</barkod_no>
+        <piyasa_fiyati>899.90</piyasa_fiyati>
+        <satis_fiyati>549.50</satis_fiyati>
+        <stok_miktari>150</stok_miktari>
+        <aciklama><![CDATA[<p>Modern kesimi ve %100 pamuklu dokusuyla gün boyu konfor sağlar.</p>]]></aciklama>
+        <ana_gorsel>https://picsum.photos/seed/1001/800/800</ana_gorsel>
+        <ek_gorseller>
+            <img_url>https://picsum.photos/seed/1001a/800/800</img_url>
+            <img_url>https://picsum.photos/seed/1001b/800/800</img_url>
+        </ek_gorseller>
+        <kdv_orani>20</kdv_orani>
+    </item>
+    <item>
+        <urun_id>1002</urun_id>
+        <urun_adi>Kadın Spor Tayt - High Waist</urun_adi>
+        <marka_adi>ActiveLife</marka_adi>
+        <kategori_yolu>Spor > Kadın > Alt Giyim</kategori_yolu>
+        <barkod_no>8680000001002</barkod_no>
+        <piyasa_fiyati>650.00</piyasa_fiyati>
+        <satis_fiyati>450.00</satis_fiyati>
+        <stok_miktari>85</stok_miktari>
+        <aciklama>Yüksek bel, toparlayıcı etkili dikişsiz spor tayt.</aciklama>
+        <ana_gorsel>https://picsum.photos/seed/1002/800/800</ana_gorsel>
+        <ek_gorseller>
+            <img_url>https://picsum.photos/seed/1002a/800/800</img_url>
+        </ek_gorseller>
+        <kdv_orani>18</kdv_orani>
+    </item>
+    <item>
+        <urun_id>1003</urun_id>
+        <urun_adi>Unisex Sneaker - Günlük Yürüyüş</urun_adi>
+        <marka_adi>StepComfort</marka_adi>
+        <kategori_yolu>Ayakkabı > Spor</kategori_yolu>
+        <barkod_no>8680000001003</barkod_no>
+        <piyasa_fiyati>1200.00</piyasa_fiyati>
+        <satis_fiyati>799.00</satis_fiyati>
+        <stok_miktari>60</stok_miktari>
+        <aciklama>Hafif taban ve nefes alan üst malzeme.</aciklama>
+        <ana_gorsel>https://picsum.photos/seed/1003/800/800</ana_gorsel>
+        <kdv_orani>18</kdv_orani>
+    </item>
+    <item>
+        <urun_id>1004</urun_id>
+        <urun_adi>Çocuk Polar Sweatshirt</urun_adi>
+        <marka_adi>KidsWear</marka_adi>
+        <kategori_yolu>Çocuk > Üst Giyim</kategori_yolu>
+        <barkod_no>8680000001004</barkod_no>
+        <piyasa_fiyati>350.00</piyasa_fiyati>
+        <satis_fiyati>249.00</satis_fiyati>
+        <stok_miktari>120</stok_miktari>
+        <aciklama>Yumuşak polar iç yüzey, sıcak tutar.</aciklama>
+        <ana_gorsel>https://picsum.photos/seed/1004/800/800</ana_gorsel>
+        <ek_gorseller>
+            <img_url>https://picsum.photos/seed/1004a/800/800</img_url>
+            <img_url>https://picsum.photos/seed/1004b/800/800</img_url>
+        </ek_gorseller>
+        <kdv_orani>10</kdv_orani>
+    </item>
+    <item>
+        <urun_id>1005</urun_id>
+        <urun_adi>Deri Bel Çantası - Siyah</urun_adi>
+        <marka_adi>LeatherCo</marka_adi>
+        <kategori_yolu>Aksesuar > Çanta</kategori_yolu>
+        <barkod_no>8680000001005</barkod_no>
+        <piyasa_fiyati>1800.00</piyasa_fiyati>
+        <satis_fiyati>1299.00</satis_fiyati>
+        <stok_miktari>35</stok_miktari>
+        <aciklama>El yapımı deri, laptop bölmeli.</aciklama>
+        <ana_gorsel>https://picsum.photos/seed/1005/800/800</ana_gorsel>
+        <kdv_orani>18</kdv_orani>
+    </item>
+    <item>
+        <urun_id>1006</urun_id>
+        <urun_adi>Bluetooth Kulaklık - Gürültü Önleyici</urun_adi>
+        <marka_adi>SoundMax</marka_adi>
+        <kategori_yolu>Elektronik > Ses</kategori_yolu>
+        <barkod_no>8680000001006</barkod_no>
+        <piyasa_fiyati>2500.00</piyasa_fiyati>
+        <satis_fiyati>1899.00</satis_fiyati>
+        <stok_miktari>45</stok_miktari>
+        <aciklama>30 saat pil ömrü, aktif gürültü engelleme.</aciklama>
+        <ana_gorsel>https://picsum.photos/seed/1006/800/800</ana_gorsel>
+        <ek_gorseller>
+            <img_url>https://picsum.photos/seed/1006a/800/800</img_url>
+        </ek_gorseller>
+        <kdv_orani>18</kdv_orani>
+    </item>
+    <item>
+        <urun_id>1007</urun_id>
+        <urun_adi>Mutfak Robotu - 1000W</urun_adi>
+        <marka_adi>ChefPro</marka_adi>
+        <kategori_yolu>Ev > Küçük Ev Aletleri</kategori_yolu>
+        <barkod_no>8680000001007</barkod_no>
+        <piyasa_fiyati>4200.00</piyasa_fiyati>
+        <satis_fiyati>3299.00</satis_fiyati>
+        <stok_miktari>28</stok_miktari>
+        <aciklama>Paslanmaz çelik kase, 2.5 litre kapasite.</aciklama>
+        <ana_gorsel>https://picsum.photos/seed/1007/800/800</ana_gorsel>
+        <kdv_orani>18</kdv_orani>
+    </item>
+    <item>
+        <urun_id>1008</urun_id>
+        <urun_adi>Yoga Matı - 6mm Ekstra Kalın</urun_adi>
+        <marka_adi>ActiveLife</marka_adi>
+        <kategori_yolu>Spor > Fitness</kategori_yolu>
+        <barkod_no>8680000001008</barkod_no>
+        <piyasa_fiyati>450.00</piyasa_fiyati>
+        <satis_fiyati>299.00</satis_fiyati>
+        <stok_miktari>90</stok_miktari>
+        <aciklama>Kaymaz yüzey, taşıma askısı dahil.</aciklama>
+        <ana_gorsel>https://picsum.photos/seed/1008/800/800</ana_gorsel>
+        <kdv_orani>18</kdv_orani>
+    </item>
+    <item>
+        <urun_id>1009</urun_id>
+        <urun_adi>Organik Pamuklu Havlu Seti - 6'lı</urun_adi>
+        <marka_adi>HomeSoft</marka_adi>
+        <kategori_yolu>Ev > Tekstil</kategori_yolu>
+        <barkod_no>8680000001009</barkod_no>
+        <piyasa_fiyati>890.00</piyasa_fiyati>
+        <satis_fiyati>599.00</satis_fiyati>
+        <stok_miktari>55</stok_miktari>
+        <aciklama>%100 organik pamuk, 70x140 cm.</aciklama>
+        <ana_gorsel>https://picsum.photos/seed/1009/800/800</ana_gorsel>
+        <ek_gorseller>
+            <img_url>https://picsum.photos/seed/1009a/800/800</img_url>
+        </ek_gorseller>
+        <kdv_orani>10</kdv_orani>
+    </item>
+    <item>
+        <urun_id>1010</urun_id>
+        <urun_adi>Led Masa Lambası - Dokunmatik</urun_adi>
+        <marka_adi>BrightHome</marka_adi>
+        <kategori_yolu>Ev > Aydınlatma</kategori_yolu>
+        <barkod_no>8680000001010</barkod_no>
+        <piyasa_fiyati>650.00</piyasa_fiyati>
+        <satis_fiyati>449.00</satis_fiyati>
+        <stok_miktari>70</stok_miktari>
+        <aciklama>3 parlaklık seviyesi, USB şarj çıkışı.</aciklama>
+        <ana_gorsel>https://picsum.photos/seed/1010/800/800</ana_gorsel>
+        <kdv_orani>18</kdv_orani>
+    </item>
+</root>

@@ -1,0 +1,716 @@
+// OmniCore - Multi-Tenant E-Commerce Ecosystem
+// PostgreSQL - Her mağaza (tenant) izole veri yapısı
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============== TENANT & AUTH ==============
+
+model Tenant {
+  id            String   @id @default(cuid())
+  name          String
+  slug          String   @unique
+  plan          TenantPlan @default(STARTER)
+  settings      Json?    // theme, locale, timezone
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  stores        Store[]
+  users         TenantUser[]
+}
+
+enum TenantPlan {
+  STARTER
+  GROWTH
+  ENTERPRISE
+}
+
+model TenantUser {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  role      TenantRole @default(MEMBER)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, userId])
+  @@index([tenantId])
+  @@index([userId])
+}
+
+enum TenantRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+// ============== STORE (Mağaza - Multi-tenant root) ==============
+
+model Store {
+  id              String   @id @default(cuid())
+  tenantId        String
+  name            String
+  slug            String
+  domain          String?
+  currency        String   @default("TRY")
+  timezone        String   @default("Europe/Istanbul")
+  locale          String   @default("tr-TR")
+  settings        Json?    // B2C site ayarları, SEO, ödeme
+  status          StoreStatus @default(ACTIVE)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  products        Product[]
+  categories      Category[]
+  orders          Order[]
+  marketplaceConnections MarketplaceConnection[]
+  marketplaceListings   MarketplaceListing[]
+  b2bCustomers    B2BCustomer[]
+  b2bPriceLists   B2BPriceList[]
+  accountingIntegrations AccountingIntegration[]
+  paymentIntegrations PaymentIntegration[]
+  logisticsSettings LogisticsSetting[]
+  xmlFeeds        XmlFeed[]
+  jobs            Job[]
+  xmlImportBatches XmlImportBatch[]
+  categoryMatchSuggestions CategoryMatchSuggestion[]
+  customerQuestions       CustomerQuestion[]
+  auditLogs               AuditLog[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@index([slug])
+}
+
+enum StoreStatus {
+  ACTIVE
+  SUSPENDED
+  TRIAL
+}
+
+// ============== CATALOG ==============
+
+model Category {
+  id          String   @id @default(cuid())
+  storeId     String
+  parentId    String?
+  name        String
+  slug        String
+  description String?
+  imageUrl    String?
+  icon        String?  // Lucide icon adı (örn: Folder, Tag)
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  externalId  String?  // Pazaryeri kategori eşlemesi
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  parent      Category? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryHierarchy")
+  products    ProductCategory[]
+
+  @@unique([storeId, slug])
+  @@index([storeId])
+  @@index([parentId])
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  storeId       String
+  sku           String
+  name          String
+  slug          String
+  description   String?  @db.Text
+  shortDescription String? @db.VarChar(500)
+  barcode       String?
+  brand         String?
+  listPrice     Decimal  @db.Decimal(18, 2)
+  salePrice     Decimal  @db.Decimal(18, 2)
+  costPrice     Decimal? @db.Decimal(18, 2)
+  taxRate       Decimal  @default(18) @db.Decimal(5, 2)
+  weight        Decimal? @db.Decimal(10, 3)
+  stockQuantity Int      @default(0)
+  lowStockThreshold Int  @default(5)
+  trackInventory Boolean @default(true)
+  isActive      Boolean  @default(true)
+  isB2bEligible Boolean  @default(false)
+  attributes    Json?    // { color, size, ... }
+  seoTitle      String?
+  seoDescription String? @db.VarChar(500)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  images        ProductImage[]
+  categories    ProductCategory[]
+  marketplaceListings MarketplaceListing[]
+  orderItems    OrderItem[]
+  b2bPrices     B2BPriceListProduct[]
+  xmlFeedItems  XmlFeedItem[]
+
+  @@unique([storeId, sku])
+  @@index([storeId])
+  @@index([slug])
+  @@index([barcode])
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  url       String
+  alt       String?
+  sortOrder Int      @default(0)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+model ProductCategory {
+  productId  String
+  categoryId String
+  isPrimary  Boolean  @default(false)
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([productId, categoryId])
+  @@index([categoryId])
+}
+
+// ============== MARKETPLACE & XML ==============
+
+model MarketplaceConnection {
+  id            String   @id @default(cuid())
+  storeId       String
+  platform      MarketplacePlatform
+  sellerId      String?
+  apiKey        String?  // Encrypted
+  apiSecret     String?  // Encrypted
+  extraConfig   Json?    // Platform-specific (supplierId, etc.)
+  isActive      Boolean  @default(true)
+  lastSyncAt    DateTime?
+  rateLimitRemaining Int?
+  rateLimitResetAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  listings      MarketplaceListing[]
+  orders        Order[]
+
+  @@unique([storeId, platform])
+  @@index([storeId])
+}
+
+enum MarketplacePlatform {
+  TRENDYOL
+  HEPSIBURADA
+  AMAZON
+  N11
+  SHOPIFY
+  WOOCOMMERCE
+  MAGENTO
+  CIMRI
+  AKAKCE
+  GOOGLE_MERCHANT
+  META_CATALOG
+  GITTIGIDIYOR
+  EPTTAA
+  CICEKSEPETI
+  MORHIPO
+  PAZARAMA
+  IDEFIX
+  GOTURC
+  PTTAVM
+  MODANISA
+  ALLESGO
+  OTHER
+}
+
+model MarketplaceListing {
+  id            String   @id @default(cuid())
+  storeId       String
+  productId     String
+  connectionId  String
+  externalId    String?  // Pazaryerindeki ürün ID
+  externalSku   String?
+  channel       String?  // Örn: TRENDYOL marketplace vs satıcı
+  listPrice     Decimal? @db.Decimal(18, 2)
+  salePrice     Decimal? @db.Decimal(18, 2)
+  stockQuantity Int      @default(0)
+  status        ListingStatus @default(PENDING)
+  lastSyncAt    DateTime?
+  syncError     String?  @db.Text
+  rawResponse   Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  connection    MarketplaceConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, productId])
+  @@index([storeId])
+  @@index([externalId])
+}
+
+enum ListingStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+  SYNC_ERROR
+}
+
+model XmlFeed {
+  id              String   @id @default(cuid())
+  storeId         String
+  b2bCustomerId   String?  // Bayi bazlı XML için
+  name            String
+  type            XmlFeedType
+  url         String?  // Public feed URL
+  format      String   @default("xml")
+  filters     Json?    // categoryIds, brand, etc.
+  isActive    Boolean  @default(true)
+  lastGeneratedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  b2bCustomer   B2BCustomer? @relation(fields: [b2bCustomerId], references: [id], onDelete: SetNull)
+  items         XmlFeedItem[]
+}
+
+model B2BCustomer {
+  id            String   @id @default(cuid())
+  storeId       String
+  code          String   // Cari kod
+  name          String
+  taxNumber     String?
+  taxOffice     String?
+  address       String?  @db.Text
+  city          String?
+  district      String?
+  country       String   @default("TR")
+  email         String?
+  phone         String?
+  paymentTermDays Int    @default(0)  // Vade (gün)
+  creditLimit   Decimal? @db.Decimal(18, 2)
+  balance       Decimal  @default(0) @db.Decimal(18, 2)
+  isActive      Boolean  @default(true)
+  notes         String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  orders        Order[]
+  priceList     B2BPriceList?
+  xmlFeeds      XmlFeed[]
+}
+
+enum XmlFeedType {
+  GOOGLE_MERCHANT
+  META_CATALOG
+  CIMRI
+  AKAKCE
+  CUSTOM
+}
+
+model XmlFeedItem {
+  id        String   @id @default(cuid())
+  feedId    String
+  productId String
+  customData Json?
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  feed      XmlFeed  @relation(fields: [feedId], references: [id], onDelete: Cascade)
+
+  @@unique([feedId, productId])
+  @@index([feedId])
+}
+
+// ============== ORDERS ==============
+
+model Order {
+  id                    String   @id @default(cuid())
+  storeId               String
+  orderNumber            String   // Mağaza bazlı sipariş no
+  marketplaceConnectionId String?
+  marketplaceOrderId     String?
+  platform              MarketplacePlatform?
+  channel                String?  // B2C | B2B | TRENDYOL | ...
+  status                OrderStatus @default(PENDING)
+  b2bCustomerId         String?
+  customerEmail         String?
+  customerPhone         String?
+  customerName          String?
+  shippingAddress       Json
+  billingAddress        Json?
+  subtotal              Decimal  @db.Decimal(18, 2)
+  taxTotal              Decimal  @db.Decimal(18, 2)
+  shippingCost          Decimal  @default(0) @db.Decimal(18, 2)
+  discountTotal         Decimal  @default(0) @db.Decimal(18, 2)
+  total                 Decimal  @db.Decimal(18, 2)
+  currency              String   @default("TRY")
+  paymentMethod         String?
+  paymentStatus         PaymentStatus @default(PENDING)
+  paidAt                DateTime?
+  invoiceId             String?  // E-fatura UUID
+  invoiceStatus         InvoiceStatus?
+  cargoTrackingNumber   String?
+  cargoProvider         String?
+  notes                 String?  @db.Text
+  rawPayload            Json?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  store                 Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  marketplaceConnection MarketplaceConnection? @relation(fields: [marketplaceConnectionId], references: [id])
+  b2bCustomer           B2BCustomer? @relation(fields: [b2bCustomerId], references: [id])
+  items                 OrderItem[]
+  jobs                  Job[]
+
+  @@unique([storeId, orderNumber])
+  @@index([storeId])
+  @@index([marketplaceOrderId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id            String   @id @default(cuid())
+  orderId       String
+  productId     String
+  marketplaceListingId String?
+  sku           String
+  name          String
+  quantity      Int
+  unitPrice     Decimal  @db.Decimal(18, 2)
+  taxRate       Decimal  @db.Decimal(5, 2)
+  taxAmount     Decimal  @db.Decimal(18, 2)
+  total         Decimal  @db.Decimal(18, 2)
+  rawPayload    Json?
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product       Product  @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  PARTIAL_REFUND
+}
+
+enum InvoiceStatus {
+  PENDING
+  SENT
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
+// ============== B2B ==============
+
+model B2BPriceList {
+  id          String   @id @default(cuid())
+  storeId     String
+  b2bCustomerId String @unique
+  name        String
+  currency    String   @default("TRY")
+  validFrom   DateTime?
+  validTo     DateTime?
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  customer    B2BCustomer @relation(fields: [b2bCustomerId], references: [id], onDelete: Cascade)
+  products    B2BPriceListProduct[]
+}
+
+model B2BPriceListProduct {
+  priceListId String
+  productId   String
+  price       Decimal  @db.Decimal(18, 2)
+  minQuantity Int      @default(1)
+  priceList   B2BPriceList @relation(fields: [priceListId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([priceListId, productId])
+  @@index([productId])
+}
+
+// ============== ACCOUNTING & E-FATURA ==============
+
+model AccountingIntegration {
+  id            String   @id @default(cuid())
+  storeId       String
+  provider      AccountingProvider
+  name          String
+  isActive      Boolean  @default(true)
+  credentials   Json?    // Encrypted: apiKey, username, password, companyId
+  settings      Json?    // Varsayılan vergi oranı, seri no, vb.
+  lastSyncAt    DateTime?
+  syncError     String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+}
+
+enum AccountingProvider {
+  LOGO
+  MIKRO
+  DIA
+  PARASUT
+  BIZIMHESAP
+  TURKCELL_ESIRKET
+  LINK
+  ETA
+  OTHER
+}
+
+model PaymentIntegration {
+  id          String   @id @default(cuid())
+  storeId     String
+  provider    PaymentProvider
+  name        String
+  isActive    Boolean  @default(true)
+  credentials Json?
+  settings    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+}
+
+enum PaymentProvider {
+  PAYTR
+  IYZICO
+  CARI_HAVALE
+  BANK_TRANSFER
+  OTHER
+}
+
+// ============== LOGISTICS ==============
+
+model LogisticsSetting {
+  id            String   @id @default(cuid())
+  storeId       String
+  provider      CargoProvider
+  apiKey        String?
+  apiSecret     String?
+  defaultWeight Decimal? @db.Decimal(10, 3)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+}
+
+enum CargoProvider {
+  YURTICI
+  ARAS
+  MNG
+  PTT
+  SURAT
+  HOROZ
+  OTHER
+}
+
+// ============== AI CATEGORY MATCH REVIEW ==============
+
+model CategoryMatchSuggestion {
+  id                    String   @id @default(cuid())
+  storeId               String
+  productId             String?
+  productName           String   @db.VarChar(500)
+  productDescription    String?  @db.Text
+  platform              String   @db.VarChar(32)  // TRENDYOL, HEPSIBURADA, vb.
+  suggestedCategoryId   String
+  suggestedCategoryName String?  @db.VarChar(255)
+  confidence            Decimal  @db.Decimal(3, 2)  // 0.00 - 1.00
+  status                CategoryMatchStatus @default(PENDING)
+  approvedCategoryId    String?  // Kullanıcı farklı kategori seçerse
+  reviewedAt            DateTime?
+  createdAt             DateTime @default(now())
+
+  store                 Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([storeId])
+  @@index([status])
+}
+
+enum CategoryMatchStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ============== AI MÜŞTERİ DESTEK (Soru-Cevap) ==============
+
+model CustomerQuestion {
+  id             String   @id @default(cuid())
+  storeId        String
+  platform       String   @db.VarChar(32)   // TRENDYOL, HEPSIBURADA, MANUAL
+  externalId     String?  @db.VarChar(128) // Pazaryeri soru ID
+  productId      String?
+  questionText   String   @db.Text
+  answerText     String?  @db.Text
+  status         QuestionStatus @default(PENDING)
+  source         String   @default("MANUAL") @db.VarChar(32) // MANUAL, TRENDYOL, HEPSIBURADA
+  createdAt      DateTime @default(now())
+  answeredAt     DateTime?
+
+  store          Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([storeId])
+  @@index([status])
+  @@index([platform])
+}
+
+enum QuestionStatus {
+  PENDING
+  ANSWERED
+  FAILED
+}
+
+// ============== AUDIT (İşlem kayıtları – kim ne yaptı) ==============
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  storeId    String   // Veri izolasyonu: hangi mağaza
+  userId     String?  // İleride auth eklendiğinde
+  action     String   @db.VarChar(64)   // CREATE_ORDER, CANCEL_INVOICE, UPDATE_STOCK
+  entityType String   @db.VarChar(64)   // Order, Invoice, Product
+  entityId   String?  @db.VarChar(128)
+  payload    Json?    // Değişiklik detayı
+  ip         String?  @db.VarChar(45)
+  createdAt  DateTime @default(now())
+
+  store      Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([storeId])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+// ============== JOBS (Async - Rate limit uyumlu) ==============
+
+model Job {
+  id            String   @id @default(cuid())
+  storeId       String
+  orderId       String?
+  type          JobType
+  status        JobStatus @default(PENDING)
+  payload       Json?
+  result        Json?
+  error         String?  @db.Text
+  attempts      Int      @default(0)
+  maxAttempts   Int      @default(3)
+  runAt         DateTime @default(now())
+  startedAt     DateTime?
+  finishedAt    DateTime?
+  createdAt     DateTime @default(now())
+
+  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  order         Order?   @relation(fields: [orderId], references: [id])
+
+  @@index([storeId])
+  @@index([type])
+  @@index([status])
+  @@index([runAt])
+}
+
+enum JobType {
+  MARKETPLACE_SYNC_PRODUCT
+  MARKETPLACE_SYNC_ORDER
+  MARKETPLACE_SYNC_STOCK
+  XML_GENERATE
+  EINVOICE_SEND
+  EINVOICE_QUERY
+  ACCOUNTING_SYNC
+  SMS_SEND
+  EMAIL_SEND
+  CARGO_CREATE
+  AI_CATEGORY_MATCH
+  AI_QA_RESPONSE
+}
+
+enum JobStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// ============== XML SEÇİMLİ İÇE AKTARIM (Ön izleme) ==============
+
+model XmlImportBatch {
+  id          String   @id @default(cuid())
+  storeId     String
+  xmlUrl      String?  @db.VarChar(1024)
+  status      XmlImportBatchStatus @default(PENDING)
+  totalCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  items       XmlImportItem[]
+
+  @@index([storeId])
+  @@index([status])
+}
+
+enum XmlImportBatchStatus {
+  PENDING
+  IMPORTING
+  COMPLETED
+  CANCELLED
+}
+
+model XmlImportItem {
+  id               String   @id @default(cuid())
+  batchId          String
+  storeId          String
+  sku              String   @db.VarChar(255)
+  name             String   @db.VarChar(500)
+  slug             String   @db.VarChar(500)
+  description      String?  @db.Text
+  shortDescription String?  @db.VarChar(500)
+  listPrice        Decimal  @db.Decimal(18, 2)
+  salePrice        Decimal  @db.Decimal(18, 2)
+  stockQuantity    Int      @default(0)
+  barcode          String?  @db.VarChar(128)
+  brand            String?  @db.VarChar(255)
+  categoryName     String?  @db.VarChar(500)  // XML'den gelen kategori adı (path olabilir)
+  imageUrls        Json?    // string[]
+  attributes       Json?
+  createdAt        DateTime @default(now())
+
+  batch            XmlImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@index([batchId])
+  @@index([storeId])
+}

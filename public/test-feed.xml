@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<products>
+  <product>
+    <stockCode>TEST-SKU-001</stockCode>
+    <sku>TEST-SKU-001</sku>
+    <name>Test Ürün 1 - Erkek Slim Fit Gömlek</name>
+    <price>299.99</price>
+    <list_price>399.99</list_price>
+    <stock>50</stock>
+    <brand>Test Marka</brand>
+    <description>Pamuklu slim fit gömlek, otomatik XML import testi.</description>
+    <image>https://via.placeholder.com/400x400?text=Urun1</image>
+  </product>
+  <product>
+    <stockCode>TEST-SKU-002</stockCode>
+    <name>Test Ürün 2 - Kadın Basic Tişört</name>
+    <price>149.50</price>
+    <stock>100</stock>
+    <brand>Test Marka</brand>
+    <description>Basic pamuk tişört.</description>
+  </product>
+  <product>
+    <sku>TEST-SKU-003</sku>
+    <title>Test Ürün 3 - Çanta</title>
+    <sale_price>199.00</sale_price>
+    <quantity>25</quantity>
+  </product>
+</products>

@@ -1,0 +1,28 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Environment (API keys, secrets – asla commit etmeyin)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Next.js
+.next
+out
+
+# Build
+dist
+build
+
+# Debug / IDE
+*.log
+npm-debug.log*
+.DS_Store
+.idea
+.vscode
+
+# Prisma
+prisma/migrations/**/migration_lock.toml

@@ -7,6 +7,7 @@ import { Worker, Job } from 'bullmq';
 import { redisConnectionForWorker } from './connection';
 import {
   marketplaceSyncQueue,
+  orderSyncQueue,
   accountingQueue,
   xmlFeedQueue,
   generalQueue,
@@ -33,10 +34,37 @@ async function processProductSync(job: Job<JobDataMap['product-sync']>) {
   try {
     if (type === 'marketplace' && productIds?.length) {
       await job.log(`Syncing ${productIds.length} products to ${platform ?? 'marketplace'}`);
-      // TODO: getMarketplaceIntegration(platform, storeId, creds) -> batch syncProduct
-      for (let i = 0; i < Math.min(productIds.length, 100); i++) {
-        await job.updateProgress(((i + 1) / Math.min(productIds.length, 100)) * 100);
+      const targetPlatform = platform ?? 'TRENDYOL';
+      const connectionIds = job.data.connectionId ? [job.data.connectionId] : undefined;
+      const totalProducts = productIds.length;
+      for (let i = 0; i < productIds.length; i++) {
+        await marketplaceSyncQueue.add(
+          'marketplace-sync',
+          {
+            storeId,
+            type: 'product',
+            platform: targetPlatform,
+            productId: productIds[i],
+            connectionIds,
+            jobId: dbJobId,
+            totalProducts,
+            payload: {},
+          },
+          { jobId: dbJobId ? undefined : undefined }
+        );
+        await job.updateProgress(((i + 1) / productIds.length) * 100);
       }
+      if (dbJobId) {
+        await prisma.job.update({
+          where: { id: dbJobId },
+          data: {
+            status: JobStatus.COMPLETED,
+            finishedAt: new Date(),
+            result: { productCount: productIds.length, type: 'marketplace', queued: productIds.length },
+          },
+        });
+      }
+      return { processed: true, storeId, type, count: productIds.length };
     } else if (type === 'xml_import' && xmlUrl) {
       await job.log(`Processing XML import from ${xmlUrl}`);
       const { parseXmlToProducts } = await import('@/services/xml/xml-parser');
@@ -156,10 +184,10 @@ async function processMarketplaceSync(job: Job<JobDataMap['marketplace-sync']>) 
     try {
       const { resolveTrendyolIds } = await import('@/services/trendyol-lookup');
       const categoryName = primaryCategory?.name ?? null;
-      console.log('[marketplace-sync] Marka/kategori ID aranıyor (timeout 20s): brand=', product.brand ?? '-', 'category=', categoryName ?? '-');
+      console.log('[marketplace-sync] Marka/kategori ID aranıyor (timeout 60s): brand=', product.brand ?? '-', 'category=', categoryName ?? '-');
       const resolved = await withTimeout(
         resolveTrendyolIds(storeId, product.brand ?? null, categoryName),
-        20_000,
+        60_000,
         'resolveTrendyolIds'
       );
       if (resolved.brandId != null) trendyolBrandId = resolved.brandId;
@@ -248,6 +276,60 @@ async function processMarketplaceSync(job: Job<JobDataMap['marketplace-sync']>) 
   }
 
   return { processed: true, storeId, type, sent };
+}
+
+async function processOrderSync(job: Job<JobDataMap['order-sync']>) {
+  const { storeId, platform, connectionId, startDate, endDate, status, lastDays, jobId: dbJobId } =
+    job.data;
+
+  if (platform !== 'TRENDYOL') {
+    await job.log(`Order sync desteklenmeyen platform: ${platform}`);
+    return { processed: true, storeId, platform };
+  }
+
+  if (dbJobId) {
+    await prisma.job
+      .update({
+        where: { id: dbJobId },
+        data: { status: JobStatus.ACTIVE, startedAt: new Date() },
+      })
+      .catch(() => {});
+  }
+
+  try {
+    const { syncTrendyolOrders } = await import('@/services/order-sync/trendyol-order-sync');
+    const result = await syncTrendyolOrders(storeId, {
+      connectionId,
+      startDate,
+      endDate,
+      status,
+      lastDays,
+    });
+    await job.log(
+      `Trendyol sipariş sync: ${result.ordersUpserted} upsert, ${result.ordersFailed} hata, ${result.ordersFetched} çekildi`
+    );
+    if (dbJobId) {
+      await prisma.job.update({
+        where: { id: dbJobId },
+        data: {
+          status: JobStatus.COMPLETED,
+          finishedAt: new Date(),
+          result: result as unknown as Prisma.InputJsonValue,
+        },
+      });
+    }
+    return { processed: true, storeId, platform, ...result };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (dbJobId) {
+      await prisma.job.update({
+        where: { id: dbJobId },
+        data: { status: JobStatus.FAILED, finishedAt: new Date(), error: message },
+      });
+    }
+    await job.log(`Order sync hata: ${message}`);
+    throw err;
+  }
 }
 
 function formatAddressForInvoice(addr: unknown): string {
@@ -675,11 +757,17 @@ export function startWorkers() {
     { connection: redisConnectionForWorker, concurrency }
   );
 
+  const workerOrderSync = new Worker<JobDataMap['order-sync']>(
+    'order-sync',
+    processOrderSync,
+    { connection: redisConnectionForWorker, concurrency: 1 }
+  );
+
   workerMarketplace.on('active', (job) => {
     console.log(`[marketplace-sync] İş alındı: job ${job.id} productId=${(job.data as { productId?: string })?.productId ?? '-'}`);
   });
 
-  [workerXmlImport, workerProductSync, workerMarketplace, workerAccounting, workerXml, workerGeneral].forEach(
+  [workerXmlImport, workerProductSync, workerMarketplace, workerOrderSync, workerAccounting, workerXml, workerGeneral].forEach(
     (w) => {
       w.on('completed', (job) => console.log(`[${job.queueName}] Job ${job.id} completed`));
       w.on('failed', (job, err) =>
@@ -692,6 +780,7 @@ export function startWorkers() {
     workerXmlImport,
     workerProductSync,
     workerMarketplace,
+    workerOrderSync,
     workerAccounting,
     workerXml,
     workerGeneral,

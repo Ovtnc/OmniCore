@@ -13,6 +13,7 @@ export { redisConnection } from './queue/connection';
 export {
   productSyncQueue,
   marketplaceSyncQueue,
+  orderSyncQueue,
   xmlImportQueue,
   accountingQueue,
   xmlFeedQueue,

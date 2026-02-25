@@ -91,7 +91,9 @@ async function getLookupMaps(storeId: string): Promise<{
 
     cache.set(cacheKey, { brands, categories, fetchedAt: Date.now() });
     return { brands, categories };
-  } catch {
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn('[trendyol-lookup] getLookupMaps failed', { storeId, error: msg });
     return null;
   }
 }

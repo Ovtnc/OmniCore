@@ -29,6 +29,16 @@ export const marketplaceSyncQueue = new Queue('marketplace-sync', {
   defaultJobOptions,
 });
 
+// Pazaryeri sipariş senkronizasyonu (Trendyol vb.)
+export const orderSyncQueue = new Queue('order-sync', {
+  connection: redisConnection,
+  defaultJobOptions: {
+    ...defaultJobOptions,
+    attempts: 3,
+    backoff: { type: 'exponential' as const, delay: 5000 },
+  },
+});
+
 // E-fatura / muhasebe - sıralı işlem için
 export const accountingQueue = new Queue('accounting', {
   connection: redisConnection,
@@ -94,6 +104,17 @@ export type JobDataMap = {
     jobId?: string;
     /** Toplam ürün sayısı (jobId ile birlikte; tamamlanan sayıyla karşılaştırılır) */
     totalProducts?: number;
+  };
+  /** Trendyol sipariş senkronizasyonu (periyodik veya manuel) */
+  'order-sync': {
+    storeId: string;
+    platform: 'TRENDYOL';
+    connectionId?: string;
+    startDate?: number;
+    endDate?: number;
+    status?: string;
+    lastDays?: number;
+    jobId?: string;
   };
   accounting: {
     storeId: string;

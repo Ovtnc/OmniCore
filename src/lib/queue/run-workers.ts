@@ -15,7 +15,7 @@ redisConnectionForWorker
   .then(() => {
     console.log('Redis bağlantısı OK');
     startWorkers();
-    console.log('OmniCore workers running: xml-import, product-sync, marketplace-sync, accounting, xml-feed, general');
+    console.log('OmniCore workers running: xml-import, product-sync, marketplace-sync, order-sync, accounting, xml-feed, general');
   })
   .catch((err) => {
     console.error('Redis bağlantısı başarısız:', (err as Error)?.message ?? err);

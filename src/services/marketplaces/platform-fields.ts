@@ -22,6 +22,7 @@ export interface PlatformFieldConfig {
 export const PLATFORM_CONNECTION_FIELDS: Record<string, PlatformFieldConfig[]> = {
   TRENDYOL: [
     { name: 'sellerId', label: 'Satıcı ID / Supplier ID', type: 'text', placeholder: 'Trendyol satıcı numarası', required: true, storeAs: 'sellerId' },
+    { name: 'integratorName', label: 'Entegratör Adı', type: 'text', placeholder: 'OmniCore veya SelfIntegration', storeAs: 'extra' },
   ],
   HEPSIBURADA: [
     { name: 'sellerId', label: 'Satıcı ID / Merchant ID', type: 'text', placeholder: 'Hepsiburada satıcı ID', required: true, storeAs: 'sellerId' },

@@ -6,12 +6,17 @@
  * Auth & User-Agent (zorunlu; yoksa 403):
  * - Header: Basic base64(apiKey:apiSecret)
  * - User-Agent: "Satıcı Id - EntegratörAdı" veya "Satıcı Id - SelfIntegration", max 30 karakter.
+ * - integratorName boşsa varsayılan: OmniCore.
  *
- * Rate limit: Aynı endpoint'e 10 saniyede en fazla 50 istek; aşımda 429 (too.many.requests).
+ * Rate limit: 429 alındığında Retry-After veya exponential backoff ile otomatik yeniden deneme.
  */
 
 import { MarketplaceAdapter } from './base.adapter';
 import type { MarketplaceConnection, MarketplaceProduct } from './base.adapter';
+import type { NormalizedOrderPayload } from './types';
+import { fetchWithTrendyolRetry } from './trendyol-request';
+import { normalizeTrendyolPackageToOrderPayload } from './trendyol-order-types';
+import type { TrendyolOrdersResponse, TrendyolShipmentPackage } from './trendyol-order-types';
 
 const TRENDYOL_BASE = 'https://apigw.trendyol.com';
 
@@ -26,16 +31,28 @@ export class TrendyolAdapter extends MarketplaceAdapter {
   }
 
   /**
-   * User-Agent zorunlu (döküman: "Satıcı Id - {Entegrasyon Firması İsmi}" veya "Satıcı Id - SelfIntegration").
-   * Bağlantıda extraConfig.integratorName varsa onu kullanır; "Self" veya boş ise "SelfIntegration", yoksa "OmniCore".
+   * User-Agent zorunlu (döküman: "Satıcı Id - EntegratörAdı").
+   * extraConfig.integratorName boşsa varsayılan "OmniCore"; "Self" ise "SelfIntegration".
    */
   private getUserAgent(connection: MarketplaceConnection): string {
     const sellerId = String(connection.sellerId ?? connection.supplierId ?? '').trim();
     const rawName = connection.integratorName?.trim() ?? '';
     const name =
-      rawName === '' || rawName.toLowerCase() === 'self' ? 'SelfIntegration' : rawName || 'OmniCore';
+      rawName === '' ? 'OmniCore' : rawName.toLowerCase() === 'self' ? 'SelfIntegration' : rawName;
     const ua = `${sellerId} - ${name}`.replace(/[^a-zA-Z0-9 -]/g, '').slice(0, 30);
-    return ua || `${sellerId} - SelfIntegration`.slice(0, 30);
+    return ua || `${sellerId} - OmniCore`.slice(0, 30);
+  }
+
+  /** Auth + User-Agent ile istek atar; 429'da retry yapar */
+  private async authenticatedFetch(
+    connection: MarketplaceConnection,
+    url: string,
+    init: RequestInit & { skipRetry?: boolean } = {}
+  ): Promise<Response> {
+    const headers = new Headers(init.headers);
+    headers.set('Authorization', this.getAuthHeader(connection));
+    headers.set('User-Agent', this.getUserAgent(connection));
+    return fetchWithTrendyolRetry(url, { ...init, headers });
   }
 
   /**
@@ -50,12 +67,7 @@ export class TrendyolAdapter extends MarketplaceAdapter {
     if (!sellerId || !connection.apiKey || !connection.apiSecret) return [];
     const url = `${TRENDYOL_BASE}/integration/product/sellers/${sellerId}/products?barcode=${encodeURIComponent(barcode)}&size=1`;
     try {
-      const res = await fetch(url, {
-        headers: {
-          Authorization: this.getAuthHeader(connection),
-          'User-Agent': this.getUserAgent(connection),
-        },
-      });
+      const res = await this.authenticatedFetch(connection, url);
       const data = (await res.json().catch(() => ({}))) as { content?: unknown[]; totalElements?: number };
       if (Array.isArray(data.content) && data.content.length > 0) return data.content;
       if (Number(data.totalElements) > 0) return [{}];
@@ -153,13 +165,9 @@ export class TrendyolAdapter extends MarketplaceAdapter {
       },
     });
 
-    const res = await fetch(endpoint, {
+    const res = await this.authenticatedFetch(connection, endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: this.getAuthHeader(connection),
-        'User-Agent': userAgent,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
 
@@ -209,12 +217,7 @@ export class TrendyolAdapter extends MarketplaceAdapter {
     const size = 1000;
     for (;;) {
       const url = `${TRENDYOL_BASE}/integration/product/brands?page=${page}&size=${size}`;
-      const res = await fetch(url, {
-        headers: {
-          Authorization: this.getAuthHeader(connection),
-          'User-Agent': this.getUserAgent(connection),
-        },
-      });
+      const res = await this.authenticatedFetch(connection, url);
       const data = (await res.json().catch(() => ({}))) as { brands?: { id: number; name: string }[] };
       if (!res.ok) {
         throw new Error(
@@ -241,12 +244,7 @@ export class TrendyolAdapter extends MarketplaceAdapter {
       throw new Error('Trendyol: apiKey, apiSecret gerekli');
     }
     const url = `${TRENDYOL_BASE}/integration/product/product-categories`;
-    const res = await fetch(url, {
-      headers: {
-        Authorization: this.getAuthHeader(connection),
-        'User-Agent': this.getUserAgent(connection),
-      },
-    });
+    const res = await this.authenticatedFetch(connection, url);
     const data = (await res.json().catch(() => ({}))) as {
       categories?: { id: number; name: string; parentId?: number; subCategories: unknown[] }[];
     };
@@ -259,29 +257,45 @@ export class TrendyolAdapter extends MarketplaceAdapter {
   }
 
   /**
-   * Sipariş paketlerini çeker (getShipmentPackages).
+   * Sipariş paketlerini çeker (getShipmentPackages). Tarih ve durum parametreleri desteklenir.
    * Ref: https://developers.trendyol.com/reference/getshipmentpackages
    * GET /integration/order/sellers/{sellerId}/orders
    */
-  async fetchOrders(connection: MarketplaceConnection): Promise<unknown> {
+  async fetchOrders(
+    connection: MarketplaceConnection,
+    params?: {
+      startDate?: number;
+      endDate?: number;
+      status?: string;
+      page?: number;
+      size?: number;
+      orderByField?: 'PackageLastModifiedDate' | 'CreatedDate';
+      orderByDirection?: 'ASC' | 'DESC';
+    }
+  ): Promise<NormalizedOrderPayload[]> {
     const sellerId = connection.sellerId ?? connection.supplierId;
     if (!sellerId || !connection.apiKey || !connection.apiSecret) {
       throw new Error('Trendyol: apiKey, apiSecret ve sellerId gerekli');
     }
-    const endpoint = `${TRENDYOL_BASE}/integration/order/sellers/${sellerId}/orders`;
-    const res = await fetch(endpoint, {
-      headers: {
-        Authorization: this.getAuthHeader(connection),
-        'User-Agent': this.getUserAgent(connection),
-      },
-    });
-    const data = await res.json().catch(() => ({}));
+    const searchParams = new URLSearchParams();
+    if (params?.startDate != null) searchParams.set('startDate', String(params.startDate));
+    if (params?.endDate != null) searchParams.set('endDate', String(params.endDate));
+    if (params?.status) searchParams.set('status', params.status);
+    if (params?.page != null) searchParams.set('page', String(params.page));
+    if (params?.size != null) searchParams.set('size', String(params.size));
+    if (params?.orderByField) searchParams.set('orderByField', params.orderByField);
+    if (params?.orderByDirection) searchParams.set('orderByDirection', params.orderByDirection);
+    const query = searchParams.toString();
+    const endpoint = `${TRENDYOL_BASE}/integration/order/sellers/${sellerId}/orders${query ? `?${query}` : ''}`;
+    const res = await this.authenticatedFetch(connection, endpoint);
+    const data = (await res.json().catch(() => ({}))) as TrendyolOrdersResponse;
     if (!res.ok) {
       throw new Error(
         (data as { message?: string })?.message ?? `Trendyol orders ${res.status}: ${res.statusText}`
       );
     }
-    return data;
+    const content = data.content ?? [];
+    return content.map((pkg: TrendyolShipmentPackage) => normalizeTrendyolPackageToOrderPayload(pkg));
   }
 
   async updateStock(
@@ -297,13 +311,9 @@ export class TrendyolAdapter extends MarketplaceAdapter {
     const payload = {
       items: [{ barcode: sku, quantity }],
     };
-    const res = await fetch(endpoint, {
+    const res = await this.authenticatedFetch(connection, endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: this.getAuthHeader(connection),
-        'User-Agent': this.getUserAgent(connection),
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
     const data = await res.json().catch(() => ({}));
@@ -329,13 +339,9 @@ export class TrendyolAdapter extends MarketplaceAdapter {
     const payload = {
       items: [{ barcode: sku, salePrice, listPrice }],
     };
-    const res = await fetch(endpoint, {
+    const res = await this.authenticatedFetch(connection, endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: this.getAuthHeader(connection),
-        'User-Agent': this.getUserAgent(connection),
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
     const data = await res.json().catch(() => ({}));
@@ -362,13 +368,9 @@ export class TrendyolAdapter extends MarketplaceAdapter {
     const payload = {
       items: [{ barcode: sku, salePrice, listPrice, quantity }],
     };
-    const res = await fetch(endpoint, {
+    const res = await this.authenticatedFetch(connection, endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: this.getAuthHeader(connection),
-        'User-Agent': this.getUserAgent(connection),
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
     const data = await res.json().catch(() => ({}));

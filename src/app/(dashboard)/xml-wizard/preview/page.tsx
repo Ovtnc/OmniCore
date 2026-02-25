@@ -42,6 +42,7 @@ function XmlWizardPreviewContent() {
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ success: boolean; message: string } | null>(null);
   const [rowStatus, setRowStatus] = useState<Record<string, 'loading' | 'success'>>({});
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQ(searchQuery), 300);
@@ -51,14 +52,30 @@ function XmlWizardPreviewContent() {
   useEffect(() => {
     if (!batchId) return;
     setLoading(true);
+    setFetchError(null);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
     const params = new URLSearchParams();
     params.set('batchId', batchId);
     params.set('page', String(page));
     params.set('limit', String(LIMIT));
     if (debouncedQ) params.set('q', debouncedQ);
-    fetch(`/api/xml-import/preview?${params}`)
-      .then((r) => r.json())
+    fetch(`/api/xml-import/preview?${params}`, { signal: controller.signal })
+      .then((r) => {
+        if (!r.ok) {
+          return r.json().then((d) => ({ error: d?.error ?? `Hata ${r.status}` }));
+        }
+        return r.json();
+      })
       .then((d) => {
+        if ('error' in d && d.error) {
+          setFetchError(d.error);
+          setItems([]);
+          setTotal(0);
+          setTotalPages(0);
+          return;
+        }
+        setFetchError(null);
         if (d.items) {
           setItems(d.items);
           setTotal(d.total ?? 0);
@@ -69,12 +86,24 @@ function XmlWizardPreviewContent() {
           setTotalPages(0);
         }
       })
-      .catch(() => {
+      .catch((err) => {
+        if (err?.name === 'AbortError') {
+          setFetchError('İstek zaman aşımına uğradı. Sayfayı yenileyip tekrar deneyin.');
+        } else {
+          setFetchError('Ön izleme yüklenemedi. Ağ hatası veya sunucu yanıt vermiyor.');
+        }
         setItems([]);
         setTotal(0);
         setTotalPages(0);
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        clearTimeout(timeoutId);
+        setLoading(false);
+      });
+    return () => {
+      controller.abort();
+      clearTimeout(timeoutId);
+    };
   }, [batchId, page, debouncedQ]);
 
   const handleFinalImport = useCallback(async () => {
@@ -84,31 +113,40 @@ function XmlWizardPreviewContent() {
     setImportResult(null);
     const ids = Array.from(selectedIds);
     ids.forEach((id) => setRowStatus((s) => ({ ...s, [id]: 'loading' })));
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
     try {
       const res = await fetch('/api/xml-import/confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ batchId, productIds: ids }),
+        signal: controller.signal,
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Aktarım başarısız');
       ids.forEach((id) => setRowStatus((s) => ({ ...s, [id]: 'success' })));
       setImportResult({ success: true, message: data.message || `${ids.length} ürün aktarıldı.` });
       setSelectedIds(new Set());
+      const newTotal = Math.max(0, total - ids.length);
+      setItems((prev) => prev.filter((i) => !ids.includes(i.id)));
+      setTotal(newTotal);
+      setTotalPages(Math.ceil(newTotal / LIMIT));
     } catch (e) {
-      setImportResult({
-        success: false,
-        message: e instanceof Error ? e.message : 'Aktarım başarısız',
-      });
+      const msg =
+        e instanceof Error && e.name === 'AbortError'
+          ? 'İstek çok uzun sürdü (90 sn). Sunucu yanıt vermedi; tekrar deneyin.'
+          : e instanceof Error ? e.message : 'Aktarım başarısız';
+      setImportResult({ success: false, message: msg });
       setRowStatus((s) => {
         const next = { ...s };
         ids.forEach((id) => delete next[id]);
         return next;
       });
     } finally {
+      clearTimeout(timeoutId);
       setImporting(false);
     }
-  }, [batchId, selectedIds]);
+  }, [batchId, selectedIds, total]);
 
   const onSelectInStock = useCallback(() => {
     setSelectedIds((prev) => {
@@ -157,6 +195,11 @@ function XmlWizardPreviewContent() {
         </Button>
       </div>
 
+      {fetchError && (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {fetchError}
+        </div>
+      )}
       <ProductPreviewTable
         items={items}
         total={total}

@@ -16,9 +16,28 @@ import { prisma } from '@/lib/prisma';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+function serializeOrderForClient<T extends { subtotal?: unknown; taxTotal?: unknown; shippingCost?: unknown; discountTotal?: unknown; total?: unknown; items?: Array<{ unitPrice?: unknown; taxRate?: unknown; taxAmount?: unknown; total?: unknown }> }>(order: T): T {
+  const o = { ...order } as Record<string, unknown>;
+  if (typeof o.subtotal !== 'undefined') o.subtotal = Number(o.subtotal);
+  if (typeof o.taxTotal !== 'undefined') o.taxTotal = Number(o.taxTotal);
+  if (typeof o.shippingCost !== 'undefined') o.shippingCost = Number(o.shippingCost);
+  if (typeof o.discountTotal !== 'undefined') o.discountTotal = Number(o.discountTotal);
+  if (typeof o.total !== 'undefined') o.total = Number(o.total);
+  if (Array.isArray(o.items)) {
+    o.items = (o.items as Array<Record<string, unknown>>).map((item) => ({
+      ...item,
+      unitPrice: typeof item.unitPrice !== 'undefined' ? Number(item.unitPrice) : item.unitPrice,
+      taxRate: typeof item.taxRate !== 'undefined' ? Number(item.taxRate) : item.taxRate,
+      taxAmount: typeof item.taxAmount !== 'undefined' ? Number(item.taxAmount) : item.taxAmount,
+      total: typeof item.total !== 'undefined' ? Number(item.total) : item.total,
+    }));
+  }
+  return o as T;
+}
+
 async function getDashboardData() {
   try {
-    const [orderCount, productCount, storeCount, recentOrders, marketplaceCount, accountingCount] =
+    const [orderCount, productCount, storeCount, recentOrdersRaw, marketplaceCount, accountingCount] =
       await Promise.all([
         prisma.order.count(),
         prisma.product.count(),
@@ -39,6 +58,8 @@ async function getDashboardData() {
       by: ['status'],
       _count: true,
     });
+
+    const recentOrders = recentOrdersRaw.map(serializeOrderForClient);
 
     return {
       orderCount,

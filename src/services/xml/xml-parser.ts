@@ -243,12 +243,21 @@ export async function parseXmlToProducts(
     onProgress?: (processed: number, total: number) => void | Promise<void>;
   }
 ): Promise<ParseXmlToProductsResult> {
-  const response = await fetch(xmlUrl, {
-    headers: { Accept: 'application/xml, text/xml, */*' },
-    signal: AbortSignal.timeout(60_000),
-  });
+  let response: Response;
+  try {
+    response = await fetch(xmlUrl, {
+      headers: { Accept: 'application/xml, text/xml, */*' },
+      signal: AbortSignal.timeout(60_000),
+    });
+  } catch (fetchErr) {
+    const msg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
+    const cause = fetchErr instanceof Error && fetchErr.cause instanceof Error ? fetchErr.cause.message : '';
+    throw new Error(
+      `XML adresine ulaşılamadı: ${xmlUrl}. Hata: ${msg}${cause ? ` (${cause})` : ''}. URL erişilebilir olmalı.`
+    );
+  }
   if (!response.ok) {
-    throw new Error(`XML fetch failed: ${response.status} ${response.statusText}`);
+    throw new Error(`XML indirilemedi: ${response.status} ${response.statusText} - ${xmlUrl}`);
   }
   const xmlData = await response.text();
   return parseXmlAndUpsertProducts(storeId, xmlData, options);

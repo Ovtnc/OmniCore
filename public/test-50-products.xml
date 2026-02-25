@@ -1,0 +1,603 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<products>
+  <product>
+    <stockCode>TEST-001</stockCode>
+    <sku>TEST-001</sku>
+    <name>Erkek Slim Fit Pamuklu Gömlek</name>
+    <price>549.50</price>
+    <list_price>899.90</list_price>
+    <stock>150</stock>
+    <brand>OmniStyle</brand>
+    <barcode>8680000001001</barcode>
+    <description>Modern kesimi ve %100 pamuklu dokusuyla gün boyu konfor sağlar.</description>
+    <image>https://picsum.photos/seed/1001/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-002</stockCode>
+    <sku>TEST-002</sku>
+    <name>Kadın Spor Tayt - High Waist</name>
+    <price>450.00</price>
+    <list_price>650.00</list_price>
+    <stock>85</stock>
+    <brand>ActiveLife</brand>
+    <barcode>8680000001002</barcode>
+    <description>Yüksek bel, toparlayıcı etkili dikişsiz spor tayt.</description>
+    <image>https://picsum.photos/seed/1002/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-003</stockCode>
+    <sku>TEST-003</sku>
+    <name>Unisex Sneaker - Günlük Yürüyüş</name>
+    <price>799.00</price>
+    <list_price>1200.00</list_price>
+    <stock>60</stock>
+    <brand>StepComfort</brand>
+    <barcode>8680000001003</barcode>
+    <description>Hafif taban ve nefes alan üst malzeme.</description>
+    <image>https://picsum.photos/seed/1003/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-004</stockCode>
+    <sku>TEST-004</sku>
+    <name>Çocuk Polar Sweatshirt</name>
+    <price>249.00</price>
+    <list_price>350.00</list_price>
+    <stock>120</stock>
+    <brand>KidsWear</brand>
+    <barcode>8680000001004</barcode>
+    <description>Yumuşak polar iç yüzey, sıcak tutar.</description>
+    <image>https://picsum.photos/seed/1004/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-005</stockCode>
+    <sku>TEST-005</sku>
+    <name>Deri Bel Çantası - Siyah</name>
+    <price>1299.00</price>
+    <list_price>1800.00</list_price>
+    <stock>35</stock>
+    <brand>LeatherCo</brand>
+    <barcode>8680000001005</barcode>
+    <description>El yapımı deri, laptop bölmeli.</description>
+    <image>https://picsum.photos/seed/1005/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-006</stockCode>
+    <sku>TEST-006</sku>
+    <name>Bluetooth Kulaklık - Gürültü Önleyici</name>
+    <price>1899.00</price>
+    <list_price>2500.00</list_price>
+    <stock>45</stock>
+    <brand>SoundMax</brand>
+    <barcode>8680000001006</barcode>
+    <description>30 saat pil ömrü, aktif gürültü engelleme.</description>
+    <image>https://picsum.photos/seed/1006/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-007</stockCode>
+    <sku>TEST-007</sku>
+    <name>Mutfak Robotu - 1000W</name>
+    <price>3299.00</price>
+    <list_price>4200.00</list_price>
+    <stock>28</stock>
+    <brand>ChefPro</brand>
+    <barcode>8680000001007</barcode>
+    <description>Paslanmaz çelik kase, 2.5 litre kapasite.</description>
+    <image>https://picsum.photos/seed/1007/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-008</stockCode>
+    <sku>TEST-008</sku>
+    <name>Yoga Matı - 6mm Ekstra Kalın</name>
+    <price>299.00</price>
+    <list_price>450.00</list_price>
+    <stock>90</stock>
+    <brand>ActiveLife</brand>
+    <barcode>8680000001008</barcode>
+    <description>Kaymaz yüzey, taşıma askısı dahil.</description>
+    <image>https://picsum.photos/seed/1008/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-009</stockCode>
+    <sku>TEST-009</sku>
+    <name>Organik Pamuklu Havlu Seti - 6'lı</name>
+    <price>599.00</price>
+    <list_price>890.00</list_price>
+    <stock>55</stock>
+    <brand>HomeSoft</brand>
+    <barcode>8680000001009</barcode>
+    <description>%100 organik pamuk, 70x140 cm.</description>
+    <image>https://picsum.photos/seed/1009/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-010</stockCode>
+    <sku>TEST-010</sku>
+    <name>Led Masa Lambası - Dokunmatik</name>
+    <price>449.00</price>
+    <list_price>650.00</list_price>
+    <stock>70</stock>
+    <brand>BrightHome</brand>
+    <barcode>8680000001010</barcode>
+    <description>3 parlaklık seviyesi, USB şarj çıkışı.</description>
+    <image>https://picsum.photos/seed/1010/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-011</stockCode>
+    <sku>TEST-011</sku>
+    <name>Erkek Deri Cüzdan</name>
+    <price>349.00</price>
+    <list_price>499.00</list_price>
+    <stock>200</stock>
+    <brand>LeatherCo</brand>
+    <barcode>8680000001011</barcode>
+    <description>El yapımı deri, RFID korumalı.</description>
+    <image>https://picsum.photos/seed/1011/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-012</stockCode>
+    <sku>TEST-012</sku>
+    <name>Kablosuz Mouse - Ergonomik</name>
+    <price>299.00</price>
+    <list_price>399.00</list_price>
+    <stock>95</stock>
+    <brand>TechGear</brand>
+    <barcode>8680000001012</barcode>
+    <description>2.4 GHz bağlantı, 12 ay pil ömrü.</description>
+    <image>https://picsum.photos/seed/1012/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-013</stockCode>
+    <sku>TEST-013</sku>
+    <name>Kadın Babet Ayakkabı</name>
+    <price>279.00</price>
+    <list_price>399.00</list_price>
+    <stock>75</stock>
+    <brand>StepComfort</brand>
+    <barcode>8680000001013</barcode>
+    <description>Yumuşak taban, günlük kullanım.</description>
+    <image>https://picsum.photos/seed/1013/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-014</stockCode>
+    <sku>TEST-014</sku>
+    <name>Termos Çanta - 500ml</name>
+    <price>189.00</price>
+    <list_price>269.00</list_price>
+    <stock>110</stock>
+    <brand>OutdoorPro</brand>
+    <barcode>8680000001014</barcode>
+    <description>Paslanmaz çelik, 12 saat sıcaklık koruma.</description>
+    <image>https://picsum.photos/seed/1014/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-015</stockCode>
+    <sku>TEST-015</sku>
+    <name>Pamuklu Çarşaf Takımı - Çift Kişilik</name>
+    <price>449.00</price>
+    <list_price>599.00</list_price>
+    <stock>40</stock>
+    <brand>HomeSoft</brand>
+    <barcode>8680000001015</barcode>
+    <description>200 iplik sayısı, anti-alerjik.</description>
+    <image>https://picsum.photos/seed/1015/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-016</stockCode>
+    <sku>TEST-016</sku>
+    <name>Güneş Gözlüğü - Polarize</name>
+    <price>399.00</price>
+    <list_price>549.00</list_price>
+    <stock>65</stock>
+    <brand>SunStyle</brand>
+    <barcode>8680000001016</barcode>
+    <description>UV400 koruma, çerçeve dahil kılıf.</description>
+    <image>https://picsum.photos/seed/1016/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-017</stockCode>
+    <sku>TEST-017</sku>
+    <name>Bluetooth Hoparlör - Taşınabilir</name>
+    <price>599.00</price>
+    <list_price>799.00</list_price>
+    <stock>50</stock>
+    <brand>SoundMax</brand>
+    <barcode>8680000001017</barcode>
+    <description>IPX7 su geçirmez, 20 saat pil.</description>
+    <image>https://picsum.photos/seed/1017/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-018</stockCode>
+    <sku>TEST-018</sku>
+    <name>Erkek Kışlık Mont</name>
+    <price>1299.00</price>
+    <list_price>1799.00</list_price>
+    <stock>30</stock>
+    <brand>OmniStyle</brand>
+    <barcode>8680000001018</barcode>
+    <description>Su geçirmez kumaş, iç astar çıkarılabilir.</description>
+    <image>https://picsum.photos/seed/1018/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-019</stockCode>
+    <sku>TEST-019</sku>
+    <name>Kadın El Çantası - Deri</name>
+    <price>899.00</price>
+    <list_price>1199.00</list_price>
+    <stock>45</stock>
+    <brand>LeatherCo</brand>
+    <barcode>8680000001019</barcode>
+    <description>El yapımı, altın renkli aksesuar.</description>
+    <image>https://picsum.photos/seed/1019/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-020</stockCode>
+    <sku>TEST-020</sku>
+    <name>Akıllı Saat - Spor</name>
+    <price>1499.00</price>
+    <list_price>1999.00</list_price>
+    <stock>35</stock>
+    <brand>TechGear</brand>
+    <barcode>8680000001020</barcode>
+    <description>Kalp atışı, GPS, 7 gün pil ömrü.</description>
+    <image>https://picsum.photos/seed/1020/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-021</stockCode>
+    <sku>TEST-021</sku>
+    <name>Bambu Kesme Tahtası Seti</name>
+    <price>249.00</price>
+    <list_price>349.00</list_price>
+    <stock>80</stock>
+    <brand>ChefPro</brand>
+    <barcode>8680000001021</barcode>
+    <description>3 parça, antibakteriyel yüzey.</description>
+    <image>https://picsum.photos/seed/1021/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-022</stockCode>
+    <sku>TEST-022</sku>
+    <name>Koşu Bandı - Katlanabilir</name>
+    <price>4499.00</price>
+    <list_price>5999.00</list_price>
+    <stock>15</stock>
+    <brand>ActiveLife</brand>
+    <barcode>8680000001022</barcode>
+    <description>Motorlu, hız ve eğim ayarlı.</description>
+    <image>https://picsum.photos/seed/1022/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-023</stockCode>
+    <sku>TEST-023</sku>
+    <name>Çocuk Okul Çantası</name>
+    <price>329.00</price>
+    <list_price>449.00</list_price>
+    <stock>90</stock>
+    <brand>KidsWear</brand>
+    <barcode>8680000001023</barcode>
+    <description>Omurga destekli, su geçirmez.</description>
+    <image>https://picsum.photos/seed/1023/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-024</stockCode>
+    <sku>TEST-024</sku>
+    <name>Mum Seti - Lavanta Kokulu</name>
+    <price>149.00</price>
+    <list_price>199.00</list_price>
+    <stock>120</stock>
+    <brand>HomeSoft</brand>
+    <barcode>8680000001024</barcode>
+    <description>6 adet, doğal balmumu.</description>
+    <image>https://picsum.photos/seed/1024/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-025</stockCode>
+    <sku>TEST-025</sku>
+    <name>Mekanik Klavye - RGB</name>
+    <price>899.00</price>
+    <list_price>1199.00</list_price>
+    <stock>42</stock>
+    <brand>TechGear</brand>
+    <barcode>8680000001025</barcode>
+    <description>Cherry MX switch, alüminyum gövde.</description>
+    <image>https://picsum.photos/seed/1025/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-026</stockCode>
+    <sku>TEST-026</sku>
+    <name>Kadın Triko Hırka</name>
+    <price>379.00</price>
+    <list_price>499.00</list_price>
+    <stock>58</stock>
+    <brand>OmniStyle</brand>
+    <barcode>8680000001026</barcode>
+    <description>Yumuşak yün karışımlı kumaş.</description>
+    <image>https://picsum.photos/seed/1026/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-027</stockCode>
+    <sku>TEST-027</sku>
+    <name>Kamp Çadırı - 2 Kişilik</name>
+    <price>1299.00</price>
+    <list_price>1699.00</list_price>
+    <stock>25</stock>
+    <brand>OutdoorPro</brand>
+    <barcode>8680000001027</barcode>
+    <description>Su geçirmez, rüzgar direnci yüksek.</description>
+    <image>https://picsum.photos/seed/1027/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-028</stockCode>
+    <sku>TEST-028</sku>
+    <name>Elektrikli Diş Fırçası</name>
+    <price>449.00</price>
+    <list_price>599.00</list_price>
+    <stock>70</stock>
+    <brand>BrightHome</brand>
+    <barcode>8680000001028</barcode>
+    <description>2 fırça başlığı, şarjlı kablosuz.</description>
+    <image>https://picsum.photos/seed/1028/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-029</stockCode>
+    <sku>TEST-029</sku>
+    <name>Erkek Spor Şort</name>
+    <price>199.00</price>
+    <list_price>279.00</list_price>
+    <stock>130</stock>
+    <brand>ActiveLife</brand>
+    <barcode>8680000001029</barcode>
+    <description>Nefes alan kumaş, cep dahil.</description>
+    <image>https://picsum.photos/seed/1029/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-030</stockCode>
+    <sku>TEST-030</sku>
+    <name>Taşınabilir Powerbank - 20000mAh</name>
+    <price>399.00</price>
+    <list_price>549.00</list_price>
+    <stock>85</stock>
+    <brand>TechGear</brand>
+    <barcode>8680000001030</barcode>
+    <description>Çift USB çıkış, hızlı şarj destekli.</description>
+    <image>https://picsum.photos/seed/1030/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-031</stockCode>
+    <sku>TEST-031</sku>
+    <name>Bebek Bez Çantası</name>
+    <price>279.00</price>
+    <list_price>369.00</list_price>
+    <stock>60</stock>
+    <brand>KidsWear</brand>
+    <barcode>8680000001031</barcode>
+    <description>Isı yalıtımlı bölme, kolay temizlenir.</description>
+    <image>https://picsum.photos/seed/1031/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-032</stockCode>
+    <sku>TEST-032</sku>
+    <name>Döküm Tava - 28cm</name>
+    <price>429.00</price>
+    <list_price>549.00</list_price>
+    <stock>55</stock>
+    <brand>ChefPro</brand>
+    <barcode>8680000001032</barcode>
+    <description>Döküm demir, fırına uygun.</description>
+    <image>https://picsum.photos/seed/1032/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-033</stockCode>
+    <sku>TEST-033</sku>
+    <name>Kadın Deri Bot</name>
+    <price>899.00</price>
+    <list_price>1199.00</list_price>
+    <stock>38</stock>
+    <brand>LeatherCo</brand>
+    <barcode>8680000001033</barcode>
+    <description>Gerçek deri, topuklu.</description>
+    <image>https://picsum.photos/seed/1033/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-034</stockCode>
+    <sku>TEST-034</sku>
+    <name>Uyku Maskesi - İpek</name>
+    <price>89.00</price>
+    <list_price>129.00</list_price>
+    <stock>180</stock>
+    <brand>HomeSoft</brand>
+    <barcode>8680000001034</barcode>
+    <description>%100 ipek, göz bölgesi yastıklı.</description>
+    <image>https://picsum.photos/seed/1034/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-035</stockCode>
+    <sku>TEST-035</sku>
+    <name>Dumbbell Set - 2x5kg</name>
+    <price>349.00</price>
+    <list_price>449.00</list_price>
+    <stock>65</stock>
+    <brand>ActiveLife</brand>
+    <barcode>8680000001035</barcode>
+    <description>Kaplamalı tutamak, ev sporuna uygun.</description>
+    <image>https://picsum.photos/seed/1035/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-036</stockCode>
+    <sku>TEST-036</sku>
+    <name>Webcam - Full HD</name>
+    <price>599.00</price>
+    <list_price>799.00</list_price>
+    <stock>48</stock>
+    <brand>TechGear</brand>
+    <barcode>8680000001036</barcode>
+    <description>Otomatik odak, mikrofon dahil.</description>
+    <image>https://picsum.photos/seed/1036/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-037</stockCode>
+    <sku>TEST-037</sku>
+    <name>Erkek Formal Ceket</name>
+    <price>1499.00</price>
+    <list_price>1999.00</list_price>
+    <stock>22</stock>
+    <brand>OmniStyle</brand>
+    <barcode>8680000001037</barcode>
+    <description>Yün karışımlı, tek düğme.</description>
+    <image>https://picsum.photos/seed/1037/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-038</stockCode>
+    <sku>TEST-038</sku>
+    <name>Kahve Değirmeni - Manuel</name>
+    <price>299.00</price>
+    <list_price>399.00</list_price>
+    <stock>72</stock>
+    <brand>ChefPro</brand>
+    <barcode>8680000001038</barcode>
+    <description>Seramik öğütücü, ayarlanabilir öğütme.</description>
+    <image>https://picsum.photos/seed/1038/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-039</stockCode>
+    <sku>TEST-039</sku>
+    <name>Çocuk Puzzle - 100 Parça</name>
+    <price>79.00</price>
+    <list_price>99.00</list_price>
+    <stock>150</stock>
+    <brand>KidsWear</brand>
+    <barcode>8680000001039</barcode>
+    <description>Eğitici, dayanıklı karton.</description>
+    <image>https://picsum.photos/seed/1039/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-040</stockCode>
+    <sku>TEST-040</sku>
+    <name>LED Strip - RGB 5m</name>
+    <price>199.00</price>
+    <list_price>279.00</list_price>
+    <stock>95</stock>
+    <brand>BrightHome</brand>
+    <barcode>8680000001040</barcode>
+    <description>Uzaktan kumandalı, yapışkanlı arka.</description>
+    <image>https://picsum.photos/seed/1040/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-041</stockCode>
+    <sku>TEST-041</sku>
+    <name>Dağcılık İpi - 50m</name>
+    <price>449.00</price>
+    <list_price>599.00</list_price>
+    <stock>28</stock>
+    <brand>OutdoorPro</brand>
+    <barcode>8680000001041</barcode>
+    <description>CE sertifikalı, 10.5mm çap.</description>
+    <image>https://picsum.photos/seed/1041/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-042</stockCode>
+    <sku>TEST-042</sku>
+    <name>Kadın Şık Elbise</name>
+    <price>679.00</price>
+    <list_price>899.00</list_price>
+    <stock>44</stock>
+    <brand>OmniStyle</brand>
+    <barcode>8680000001042</barcode>
+    <description>Midaxi boy, elastan karışımlı.</description>
+    <image>https://picsum.photos/seed/1042/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-043</stockCode>
+    <sku>TEST-043</sku>
+    <name>Laptop Stand - Alüminyum</name>
+    <price>249.00</price>
+    <list_price>329.00</list_price>
+    <stock>88</stock>
+    <brand>TechGear</brand>
+    <barcode>8680000001043</barcode>
+    <description>6 açı ayarı, taşınabilir.</description>
+    <image>https://picsum.photos/seed/1043/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-044</stockCode>
+    <sku>TEST-044</sku>
+    <name>Pilates Bandı Seti - 3'lü</name>
+    <price>129.00</price>
+    <list_price>179.00</list_price>
+    <stock>140</stock>
+    <brand>ActiveLife</brand>
+    <barcode>8680000001044</barcode>
+    <description>Farklı direnç seviyeleri, taşıma çantası dahil.</description>
+    <image>https://picsum.photos/seed/1044/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-045</stockCode>
+    <sku>TEST-045</sku>
+    <name>Kokulu Taş Difüzör</name>
+    <price>179.00</price>
+    <list_price>249.00</list_price>
+    <stock>78</stock>
+    <brand>HomeSoft</brand>
+    <barcode>8680000001045</barcode>
+    <description>USB ile çalışır, 7 renk LED.</description>
+    <image>https://picsum.photos/seed/1045/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-046</stockCode>
+    <sku>TEST-046</sku>
+    <name>Erkek Saat - Klasik</name>
+    <price>799.00</price>
+    <list_price>1099.00</list_price>
+    <stock>52</stock>
+    <brand>LeatherCo</brand>
+    <barcode>8680000001046</barcode>
+    <description>Quartz hareket, deri kayış.</description>
+    <image>https://picsum.photos/seed/1046/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-047</stockCode>
+    <sku>TEST-047</sku>
+    <name>Bebek Oyuncak Seti - 6'lı</name>
+    <price>199.00</price>
+    <list_price>269.00</list_price>
+    <stock>62</stock>
+    <brand>KidsWear</brand>
+    <barcode>8680000001047</barcode>
+    <description>0-24 ay, BPA free malzeme.</description>
+    <image>https://picsum.photos/seed/1047/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-048</stockCode>
+    <sku>TEST-048</sku>
+    <name>Döküm Çaydanlık</name>
+    <price>359.00</price>
+    <list_price>479.00</list_price>
+    <stock>46</stock>
+    <brand>ChefPro</brand>
+    <barcode>8680000001048</barcode>
+    <description>1.2 litre, emaye kaplama.</description>
+    <image>https://picsum.photos/seed/1048/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-049</stockCode>
+    <sku>TEST-049</sku>
+    <name>Kadın Sporcu Sütyeni</name>
+    <price>229.00</price>
+    <list_price>299.00</list_price>
+    <stock>98</stock>
+    <brand>ActiveLife</brand>
+    <barcode>8680000001049</barcode>
+    <description>Orta destek, nefes alan kumaş.</description>
+    <image>https://picsum.photos/seed/1049/800/800</image>
+  </product>
+  <product>
+    <stockCode>TEST-050</stockCode>
+    <sku>TEST-050</sku>
+    <name>USB-C Hub - 7 in 1</name>
+    <price>429.00</price>
+    <list_price>549.00</list_price>
+    <stock>67</stock>
+    <brand>TechGear</brand>
+    <barcode>8680000001050</barcode>
+    <description>HDMI, USB 3.0, SD kart okuyucu.</description>
+    <image>https://picsum.photos/seed/1050/800/800</image>
+  </product>
+</products>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Sparkles, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Zap, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -57,7 +57,7 @@ export function Step3TagMapping() {
       if (!res.ok) throw new Error(data.error || 'Öneri alınamadı');
       applyAiSuggestions(data.suggestions || [], data.variants || [], 0.8);
     } catch (e) {
-      setAutoMappingError(e instanceof Error ? e.message : 'AI eşleştirme yapılamadı');
+      setAutoMappingError(e instanceof Error ? e.message : 'Otomatik eşleştirme yapılamadı');
     } finally {
       setAutoMappingLoading(false);
     }
@@ -93,7 +93,7 @@ export function Step3TagMapping() {
       <CardHeader>
         <CardTitle>Etiket Eşleştirme</CardTitle>
         <CardDescription>
-          XML etiketlerini Product alanlarına eşleyin. &quot;Otomatik Eşleştir&quot; ile yapay zeka önerisi uygulanır (%80+ güven).
+          XML etiketlerini Product alanlarına eşleyin. &quot;Otomatik Eşleştir&quot; ile tüm etiketler algoritma ile eşleştirilir (%80+ güven).
         </CardDescription>
         <div className="flex flex-wrap items-center gap-2 pt-2">
           <Button
@@ -107,7 +107,7 @@ export function Step3TagMapping() {
               <span className="animate-pulse">Yükleniyor...</span>
             ) : (
               <>
-                <Sparkles className="mr-2 h-4 w-4" />
+                <Zap className="mr-2 h-4 w-4" />
                 Otomatik Eşleştir
               </>
             )}
@@ -159,11 +159,14 @@ export function Step3TagMapping() {
                         {validationWarnings[field.key]}
                       </p>
                     )}
+                    {'hint' in field && field.hint && (
+                      <p className="text-xs text-muted-foreground">{field.hint}</p>
+                    )}
                   </div>
                   {aiMappedFields.includes(field.key) && (
                     <span className="text-xs text-muted-foreground flex items-center gap-1 whitespace-nowrap">
                       <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
-                      Yapay zeka tarafından eşleştirildi
+                      Otomatik eşleştirildi
                     </span>
                   )}
                 </div>
@@ -207,7 +210,7 @@ export function Step3TagMapping() {
                     {aiMappedFields.includes(v.key) && (
                       <span className="text-xs text-muted-foreground flex items-center gap-1">
                         <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
-                        Yapay zeka
+                        Otomatik
                       </span>
                     )}
                   </div>

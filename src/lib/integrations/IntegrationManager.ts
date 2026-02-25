@@ -1,11 +1,14 @@
 /**
  * OmniCore - Integration Manager
- * Pazaryeri: @/services/marketplaces factory kullanır.
+ * Pazaryeri: @/services/marketplaces/factory (getMarketplaceAdapter) kullanır.
+ * Tüm Prisma MarketplacePlatform enum değerleri factory üzerinden desteklenir;
+ * bilinmeyen platformlar StubMarketplaceAdapter ile sarılır. Enum listesine burada
+ * bağımlılık yok — dinamik yapı.
  * Muhasebe: yerel registry.
  */
 
 import type { IntegrationCredentials } from './types';
-import type { MarketplacePlatform, AccountingProvider } from '@prisma/client';
+import type { AccountingProvider } from '@prisma/client';
 import { getMarketplaceAdapter } from '@/services/marketplaces';
 import { AccountingIntegrationBase } from './base/AccountingIntegrationBase';
 import { LogoAdapter } from './adapters/accounting/LogoAdapter';
@@ -18,8 +21,13 @@ export interface IMarketplaceIntegrationHealth {
   healthCheck(): Promise<boolean>;
 }
 
+/**
+ * Pazaryeri entegrasyonu — platform adı factory'ye iletilir.
+ * Prisma MarketplacePlatform enum değerleri (TRENDYOL, HEPSIBURADA, PAZARAMA, IDEFIX, …)
+ * veya herhangi bir string kabul edilir; factory bilinmeyenler için StubMarketplaceAdapter döner.
+ */
 export function getMarketplaceIntegration(
-  platform: MarketplacePlatform,
+  platform: string,
   _storeId: string,
   credentials: IntegrationCredentials,
   _rateLimit?: { remaining?: number; resetAt?: Date; limit?: number }

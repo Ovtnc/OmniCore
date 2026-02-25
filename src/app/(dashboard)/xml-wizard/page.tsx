@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Link2,
+  Check,
   CheckCircle2,
   LayoutGrid,
   MapPin,
@@ -63,6 +64,10 @@ export default function XmlWizardPage() {
     setSelectedPlatforms,
     reset,
   } = useXmlWizardStore();
+
+  useEffect(() => {
+    reset();
+  }, [reset]);
 
   useEffect(() => {
     fetch('/api/stores')
@@ -276,6 +281,9 @@ export default function XmlWizardPage() {
                     );
                   }}
                 >
+                  {selectedPlatforms.includes(p.value) && (
+                    <Check className="mr-1.5 h-4 w-4 shrink-0" />
+                  )}
                   {p.label}
                 </Button>
               ))}

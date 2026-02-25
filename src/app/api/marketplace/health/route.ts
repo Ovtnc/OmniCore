@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getMarketplaceIntegration } from '@/lib/integrations/IntegrationManager';
-import type { MarketplacePlatform } from '@prisma/client';
+import { getConnectionWithDecryptedCredentials, toAdapterConnection } from '@/lib/marketplace-connection';
+import { getMarketplaceAdapter } from '@/services/marketplaces';
 
 /** GET - Tüm mağazaların pazaryeri bağlantı sağlık durumu */
 export async function GET() {
@@ -19,8 +19,7 @@ export async function GET() {
 
     const results = await Promise.all(
       connections.map(async (conn) => {
-        const hasCreds = conn.sellerId && conn.id;
-        if (!hasCreds) {
+        if (!conn.sellerId || !conn.id) {
           return {
             id: conn.id,
             storeId: conn.storeId,
@@ -31,20 +30,27 @@ export async function GET() {
           };
         }
         try {
-          const creds = await getCredentials(conn.id);
-          const integration = getMarketplaceIntegration(
-            conn.platform as MarketplacePlatform,
-            conn.storeId,
-            creds
-          );
-          const ok = await integration.healthCheck();
+          const decrypted = await getConnectionWithDecryptedCredentials(conn.id);
+          if (!decrypted?.apiKey || !decrypted?.apiSecret) {
+            return {
+              id: conn.id,
+              storeId: conn.storeId,
+              storeName: conn.store.name,
+              platform: conn.platform,
+              ok: false,
+              error: 'API anahtarı veya secret eksik',
+            };
+          }
+          const connection = toAdapterConnection(decrypted);
+          const adapter = getMarketplaceAdapter(conn.platform);
+          const result = await adapter.testConnection(connection);
           return {
             id: conn.id,
             storeId: conn.storeId,
             storeName: conn.store.name,
             platform: conn.platform,
-            ok,
-            error: ok ? null : 'Bağlantı testi başarısız',
+            ok: result.ok,
+            error: result.ok ? null : (result.message ?? 'Bağlantı testi başarısız'),
           };
         } catch (e) {
           const message = e instanceof Error ? e.message : String(e);
@@ -65,16 +71,4 @@ export async function GET() {
     console.error('Marketplace health error:', e);
     return NextResponse.json({ error: 'Sağlık kontrolü yapılamadı' }, { status: 500 });
   }
-}
-
-async function getCredentials(connectionId: string) {
-  const c = await prisma.marketplaceConnection.findUnique({
-    where: { id: connectionId },
-    select: { apiKey: true, apiSecret: true, sellerId: true },
-  });
-  return {
-    apiKey: c?.apiKey ?? '',
-    apiSecret: c?.apiSecret ?? '',
-    supplierId: c?.sellerId ?? '',
-  };
 }

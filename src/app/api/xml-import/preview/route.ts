@@ -59,6 +59,8 @@ export async function GET(req: Request) {
       barcode: item.barcode,
       brand: item.brand,
       categoryName: item.categoryName ?? null,
+      trendyolBrandId: item.trendyolBrandId ?? null,
+      trendyolCategoryId: item.trendyolCategoryId ?? null,
       imageUrls: (item.imageUrls as string[] | null) ?? [],
       attributes: item.attributes as Record<string, string> | null,
     }));

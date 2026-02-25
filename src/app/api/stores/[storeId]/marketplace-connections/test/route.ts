@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { MarketplacePlatform } from '@prisma/client';
 import { getMarketplaceAdapter } from '@/services/marketplaces';
+import { toUserFriendlyConnectionError } from '@/lib/marketplace-connection-errors';
 
 function buildConnection(body: {
   platform: MarketplacePlatform;
@@ -64,16 +65,13 @@ export async function POST(
     if (result.ok) {
       return NextResponse.json({ ok: true, message: 'Bağlantı başarıyla doğrulandı.' });
     }
-    return NextResponse.json(
-      { ok: false, error: result.message ?? 'Bağlantı testi başarısız' },
-      { status: 400 }
-    );
+    const errMsg = result.message ?? 'Bağlantı testi başarısız';
+    const { status: errStatus, error: userMsg } = toUserFriendlyConnectionError(errMsg);
+    return NextResponse.json({ ok: false, error: userMsg }, { status: errStatus });
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     console.error('Marketplace connection test error:', e);
-    return NextResponse.json(
-      { ok: false, error: message },
-      { status: 500 }
-    );
+    const { status: errStatus, error: userMsg } = toUserFriendlyConnectionError(message);
+    return NextResponse.json({ ok: false, error: userMsg }, { status: errStatus });
   }
 }

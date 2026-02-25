@@ -1,0 +1,36 @@
+# Dependencies (image içinde yeniden kurulur)
+node_modules
+.pnpm-store
+
+# Build / cache
+.next
+out
+.turbo
+*.tsbuildinfo
+
+# Git
+.git
+.gitignore
+
+# Env (production compose ile verilir)
+.env
+.env.*
+!.env.production.example
+
+# IDE / OS
+.idea
+.vscode
+*.log
+.DS_Store
+
+# Test / doc (image boyutunu küçült)
+*.md
+!README.md
+coverage
+__tests__
+*.test.ts
+*.test.tsx
+*.spec.ts
+
+# Gereksiz (build context'tan; image içine kopyalanmaz)
+.dockerignore

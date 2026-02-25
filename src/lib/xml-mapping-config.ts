@@ -8,8 +8,34 @@ export const PRODUCT_MAIN_FIELDS = [
   { key: 'shortDescription', label: 'Kısa açıklama', type: 'string', required: false },
   { key: 'sku', label: 'SKU / Stok kodu', type: 'string', required: true },
   { key: 'barcode', label: 'Barkod', type: 'string', required: false },
-  { key: 'brand', label: 'Marka', type: 'string', required: false },
-  { key: 'category', label: 'Kategori', type: 'string', required: false },
+  {
+    key: 'brand',
+    label: 'Marka',
+    type: 'string',
+    required: false,
+    hint: 'brand, brandId, BrandId → Trendyol marka ID otomatik çözülür',
+  },
+  {
+    key: 'category',
+    label: 'Kategori',
+    type: 'string',
+    required: false,
+    hint: 'category, categoryId, CategoryId → Trendyol kategori ID otomatik çözülür',
+  },
+  {
+    key: 'trendyolBrandId',
+    label: 'Trendyol Marka ID',
+    type: 'number',
+    required: false,
+    hint: 'XML\'de sayısal marka ID varsa bu etikete eşleyin (örn. brandId, marka_id). 0 gönderilmez.',
+  },
+  {
+    key: 'trendyolCategoryId',
+    label: 'Trendyol Kategori ID',
+    type: 'number',
+    required: false,
+    hint: 'XML\'de sayısal kategori ID varsa bu etikete eşleyin (örn. categoryId, kategori_id). 0 gönderilmez.',
+  },
   { key: 'listPrice', label: 'Liste fiyatı', type: 'number', required: false },
   { key: 'salePrice', label: 'Satış fiyatı', type: 'number', required: true },
   { key: 'costPrice', label: 'Maliyet', type: 'number', required: false },
@@ -39,6 +65,8 @@ export const NUMERIC_FIELD_KEYS: string[] = [
   'stockQuantity',
   'taxRate',
   'weight',
+  'trendyolBrandId',
+  'trendyolCategoryId',
 ];
 
 /** Örnek değerin sayısal olup olmadığını kontrol et (validation için) */

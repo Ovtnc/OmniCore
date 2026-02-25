@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Link2, Plus, Trash2 } from 'lucide-react';
+import { AlertCircle, Link2, Plus, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -53,6 +53,7 @@ export default function MarketplaceConnectionsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const [form, setForm] = useState<ConnectionFormValues>({
     platform: '',
     sellerId: '',
@@ -92,6 +93,7 @@ export default function MarketplaceConnectionsPage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!storeId || !form.platform) return;
+    setConnectionError(null);
     setSaving(true);
     const payload = {
       platform: form.platform,
@@ -108,7 +110,9 @@ export default function MarketplaceConnectionsPage() {
       });
       const testData = await testRes.json().catch(() => ({}));
       if (!testRes.ok || testData.ok === false) {
-        throw new Error(testData.error || testData.message || 'Bağlantı testi başarısız');
+        const err = testData.error || testData.message || 'Bağlantı testi başarısız';
+        setConnectionError(err);
+        return;
       }
       const res = await fetch(`/api/stores/${storeId}/marketplace-connections`, {
         method: 'POST',
@@ -116,7 +120,10 @@ export default function MarketplaceConnectionsPage() {
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Eklenemedi');
+      if (!res.ok) {
+        setConnectionError(data.error || 'Bağlantı eklenemedi');
+        return;
+      }
       setConnections((prev) => [
         {
           id: data.id,
@@ -131,8 +138,9 @@ export default function MarketplaceConnectionsPage() {
       ]);
       setForm({ platform: '', sellerId: '', apiKey: '', apiSecret: '', extraConfig: {} });
       setShowForm(false);
+      setConnectionError(null);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Bağlantı eklenemedi');
+      setConnectionError(err instanceof Error ? err.message : 'Bağlantı eklenemedi');
     } finally {
       setSaving(false);
     }
@@ -225,7 +233,13 @@ export default function MarketplaceConnectionsPage() {
                   Bu mağaza için tanımlı pazaryeri entegrasyonları
                 </CardDescription>
               </div>
-              <Button onClick={() => setShowForm((v) => !v)} size="sm">
+              <Button
+                onClick={() => {
+                  setConnectionError(null);
+                  setShowForm((v) => !v);
+                }}
+                size="sm"
+              >
                 <Plus className="h-4 w-4 mr-1" />
                 Yeni bağlantı
               </Button>
@@ -236,6 +250,12 @@ export default function MarketplaceConnectionsPage() {
                   onSubmit={handleCreate}
                   className="rounded-lg border bg-muted/30 p-4 space-y-4"
                 >
+                  {connectionError && (
+                    <div className="flex items-start gap-2 rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                      <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                      <span>{connectionError}</span>
+                    </div>
+                  )}
                   <ConnectionForm value={form} onChange={setForm} disabled={saving} />
                   <div className="flex gap-2">
                     <Button type="submit" disabled={saving || !form.platform}>

@@ -12,6 +12,61 @@ datasource db {
 
 // ============== TENANT & AUTH ==============
 
+// Auth.js (NextAuth v5) + OmniCore: giriş/kayıt ve tenant üyeliği
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  password      String?   // bcrypt hash; null for OAuth-only users
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts    Account[]
+  sessions    Session[]
+  tenantUsers TenantUser[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
 model Tenant {
   id            String   @id @default(cuid())
   name          String
@@ -37,6 +92,7 @@ model TenantUser {
   userId    String
   role      TenantRole @default(MEMBER)
   tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
   @@unique([tenantId, userId])
@@ -146,6 +202,8 @@ model Product {
   attributes    Json?    // { color, size, ... }
   seoTitle      String?
   seoDescription String? @db.VarChar(500)
+  trendyolBrandId    Int?  // Trendyol Marka Listesi API marka ID (0 gönderilemez)
+  trendyolCategoryId Int?  // Trendyol kategori ID veya Category.externalId (0 gönderilemez)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -705,6 +763,8 @@ model XmlImportItem {
   barcode          String?  @db.VarChar(128)
   brand            String?  @db.VarChar(255)
   categoryName     String?  @db.VarChar(500)  // XML'den gelen kategori adı (path olabilir)
+  trendyolBrandId  Int?     // XML'den eşlenen sayısal marka ID (Pazaryeri gönderiminde kullanılır)
+  trendyolCategoryId Int?   // XML'den eşlenen sayısal kategori ID (Pazaryeri gönderiminde kullanılır)
   imageUrls        Json?    // string[]
   attributes       Json?
   createdAt        DateTime @default(now())

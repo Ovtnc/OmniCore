@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { FileText, Plus, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
+import { FileText, Plus, Trash2, ToggleLeft, ToggleRight, Loader2, Play, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -47,6 +47,9 @@ export default function AccountingPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ provider: '', name: '' });
   const [error, setError] = useState('');
+  const [testingId, setTestingId] = useState<string | null>(null);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     fetch('/api/stores')
@@ -133,6 +136,53 @@ export default function AccountingPage() {
         if (data.ok) setIntegrations((prev) => prev.filter((i) => i.id !== id));
       })
       .catch(() => {});
+  };
+
+  const handleTest = (id: string) => {
+    setActionMessage(null);
+    setTestingId(id);
+    fetch(`/api/stores/${storeId}/accounting-integrations/${id}/test`, { method: 'POST' })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.ok) {
+          setActionMessage({ type: 'success', text: data.message || 'Bağlantı başarılı' });
+          setIntegrations((prev) =>
+            prev.map((i) =>
+              i.id === id
+                ? { ...i, lastSyncAt: new Date().toISOString(), syncError: null }
+                : i
+            )
+          );
+        } else {
+          setActionMessage({ type: 'error', text: data.error || 'Bağlantı testi başarısız' });
+          setIntegrations((prev) =>
+            prev.map((i) =>
+              i.id === id ? { ...i, syncError: data.error || 'Hata' } : i
+            )
+          );
+        }
+      })
+      .catch(() => setActionMessage({ type: 'error', text: 'Bağlantı testi yapılamadı' }))
+      .finally(() => setTestingId(null));
+  };
+
+  const handleSync = (id: string) => {
+    setActionMessage(null);
+    setSyncingId(id);
+    fetch(`/api/stores/${storeId}/accounting-integrations/${id}/sync`, { method: 'POST' })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.ok) {
+          setActionMessage({ type: 'success', text: data.message || 'Kuyruğa eklendi' });
+          setIntegrations((prev) =>
+            prev.map((i) => (i.id === id ? { ...i, syncError: null } : i))
+          );
+        } else {
+          setActionMessage({ type: 'error', text: data.error || 'Eklenemedi' });
+        }
+      })
+      .catch(() => setActionMessage({ type: 'error', text: 'İstek başarısız' }))
+      .finally(() => setSyncingId(null));
   };
 
   return (
@@ -238,6 +288,17 @@ export default function AccountingPage() {
                     </form>
                   )}
 
+                  {actionMessage && (
+                    <p
+                      className={`mb-4 rounded-md border px-3 py-2 text-sm ${
+                        actionMessage.type === 'success'
+                          ? 'border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400'
+                          : 'border-destructive/30 bg-destructive/10 text-destructive'
+                      }`}
+                    >
+                      {actionMessage.text}
+                    </p>
+                  )}
                   {integrations.length === 0 ? (
                     <p className="text-muted-foreground py-6 text-center">
                       Henüz muhasebe entegrasyonu yok. &quot;Entegrasyon Ekle&quot; ile ekleyin.
@@ -247,18 +308,51 @@ export default function AccountingPage() {
                       {integrations.map((i) => (
                         <li
                           key={i.id}
-                          className="flex items-center justify-between border rounded-lg px-4 py-3"
+                          className="flex flex-wrap items-center justify-between gap-2 border rounded-lg px-4 py-3"
                         >
-                          <div>
+                          <div className="min-w-0">
                             <span className="font-medium">{i.name}</span>
                             <span className="text-muted-foreground ml-2">
                               ({PROVIDERS.find((p) => p.value === i.provider)?.label ?? i.provider})
                             </span>
+                            {i.lastSyncAt && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Son test: {new Date(i.lastSyncAt).toLocaleString('tr-TR')}
+                              </p>
+                            )}
                             {i.syncError && (
                               <p className="text-sm text-destructive mt-1">{i.syncError}</p>
                             )}
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleTest(i.id)}
+                              disabled={testingId !== null}
+                              title="Bağlantıyı test et"
+                            >
+                              {testingId === i.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Play className="h-4 w-4" />
+                              )}
+                              <span className="ml-1.5 hidden sm:inline">Test et</span>
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleSync(i.id)}
+                              disabled={syncingId !== null}
+                              title="Senkronizasyonu kuyruğa ekle"
+                            >
+                              {syncingId === i.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <RefreshCw className="h-4 w-4" />
+                              )}
+                              <span className="ml-1.5 hidden sm:inline">Senkronize et</span>
+                            </Button>
                             <Button
                               variant="ghost"
                               size="icon"

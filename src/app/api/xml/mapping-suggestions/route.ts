@@ -1,28 +1,205 @@
 /**
- * AI ile XML etiketlerini Product alanlarına eşleştirme önerileri
+ * XML etiketlerini Product alanlarına algoritma ile eşleştirme (AI kullanılmaz).
+ * Tüm alan–etiket olasılıkları puanlanır, en iyi global atama seçilir.
  * POST body: { xmlTags: string[], sampleValues?: Record<string, string> }
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { PRODUCT_MAIN_FIELDS, VARIANT_ATTRIBUTE_TYPES } from '@/lib/xml-mapping-config';
+import {
+  PRODUCT_MAIN_FIELDS,
+  VARIANT_ATTRIBUTE_TYPES,
+  NUMERIC_FIELD_KEYS,
+} from '@/lib/xml-mapping-config';
 
-const OPENAI_SYSTEM = `Sen bir e-ticaret veri eşleştirme uzmanısın. XML'deki etiket adlarını (Türkçe/İngilizce/rastgele) aşağıdaki Product alanlarıyla eşleştiriyorsun.
+/** Alan anahtarı → olası XML etiket adları (TR, EN, yaygın varyantlar) */
+const FIELD_SYNONYMS: Record<string, string[]> = {
+  name: [
+    'name', 'title', 'baslik', 'urun_adi', 'urunadi', 'productname', 'product_name',
+    'adi', 'ad', 'baslik', 'title', 'product_title', 'urun_baslik', 'name_tr', 'name_en',
+  ],
+  description: [
+    'description', 'aciklama', 'desc', 'urun_aciklama', 'long_description', 'detay',
+    'content', 'icerik', 'full_description', 'ozet', 'text',
+  ],
+  shortDescription: [
+    'short_description', 'kisa_aciklama', 'short_desc', 'ozet', 'summary', 'short',
+  ],
+  sku: [
+    'sku', 'stok_kodu', 'stokkodu', 'code', 'urun_kodu', 'product_code', 'item_code',
+    'kod', 'mpn', 'part_number', 'model', 'referans',
+  ],
+  barcode: [
+    'barcode', 'barkod', 'ean', 'gtin', 'upc', 'isbn',
+  ],
+  brand: [
+    'brand', 'marka', 'manufacturer', 'uretici', 'firma', 'vendor',
+    'brandid', 'brand_id', 'brandId', 'BrandId', 'marka_id', 'manufacturer_id',
+  ],
+  category: [
+    'category', 'kategori', 'cat', 'kategoriler', 'categories', 'catalog', 'katalog',
+    'path', 'category_path', 'kategori_yolu',
+    'categoryid', 'category_id', 'categoryId', 'CategoryId', 'kategori_id', 'cat_id',
+  ],
+  trendyolBrandId: [
+    'brandid', 'brand_id', 'brandId', 'BrandId', 'marka_id', 'trendyol_brand_id',
+    'trendyol_brandid', 'manufacturer_id', 'marka_kod',
+  ],
+  trendyolCategoryId: [
+    'categoryid', 'category_id', 'categoryId', 'CategoryId', 'kategori_id', 'cat_id',
+    'trendyol_category_id', 'trendyol_categoryid', 'catalog_id',
+  ],
+  listPrice: [
+    'list_price', 'liste_fiyat', 'listefiyat', 'piyasa_fiyat', 'market_price',
+    'fiyat_liste', 'msrp', 'price_before', 'eski_fiyat',
+  ],
+  salePrice: [
+    'sale_price', 'satis_fiyat', 'satisfiyat', 'price', 'fiyat', 'selling_price',
+    'current_price', 'ucret', 'fiyat_satis',
+  ],
+  costPrice: [
+    'cost_price', 'maliyet', 'cost', 'maliyet_fiyat', 'purchase_price', 'alış_fiyat',
+  ],
+  stockQuantity: [
+    'stock', 'stock_quantity', 'stok', 'stok_adedi', 'quantity', 'miktar', 'qty',
+    'adet', 'inventory', 'stok_miktar', 'available',
+  ],
+  taxRate: [
+    'tax_rate', 'tax', 'kdv', 'kdv_oran', 'vat', 'vergi', 'tax_rate',
+  ],
+  weight: [
+    'weight', 'agirlik', 'weight_kg', 'kilo', 'kg', 'gram', 'g',
+  ],
+  image: [
+    'image', 'resim', 'img', 'picture', 'photo', 'gorsel', 'main_image', 'ana_gorsel',
+    'image_url', 'resim_url', 'thumbnail', 'thumb', 'primary_image',
+  ],
+  images: [
+    'images', 'gorseller', 'gallery', 'galeri', 'extra_images', 'ek_gorseller',
+    'image_list', 'resimler', 'photos',
+  ],
+  // Varyant
+  color: [
+    'color', 'renk', 'colour', 'variant_color', 'renk_kod', 'colour_code',
+  ],
+  size: [
+    'size', 'beden', 'ebat', 'olcu', 'dimension', 'variant_size', 'numara',
+  ],
+  material: [
+    'material', 'materyal', 'malzeme', 'fabric', 'kumas', 'material_type',
+  ],
+  pattern: [
+    'pattern', 'desen', 'pattern_type', 'print',
+  ],
+  other: [
+    'variant', 'varyant', 'option', 'secenek', 'attribute', 'ozellik', 'other',
+  ],
+};
 
-Product ana alanları: ${PRODUCT_MAIN_FIELDS.map((f) => `${f.key} (${f.label}, tip: ${f.type})`).join(', ')}
-Varyant alanları: ${VARIANT_ATTRIBUTE_TYPES.map((v) => `${v.key} (${v.label})`).join(', ')}
+function normalize(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[\s\-_\.]+/g, '')
+    .replace(/ı/g, 'i')
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ş/g, 's')
+    .replace(/ö/g, 'o')
+    .replace(/ç/g, 'c');
+}
 
-Kurallar:
-- Her Product alanı için en uygun XML etiketini seç (yoksa null).
-- confidence 0.0-1.0 arası (1.0 = kesin eşleşme).
-- Sadece JSON döndür, başka metin yazma. Format:
-{"suggestions":[{"productField":"name","xmlTag":"urun_adi","confidence":0.95}, ...], "variants":[{"productField":"color","xmlTag":"renk","confidence":0.9}, ...]}`;
+/** İki string arasında benzerlik (0-1). Önce tam eşleşme, sonra içerme, sonra Jaccard. */
+function similarity(tagNorm: string, fieldNorm: string, synonyms: string[]): number {
+  if (tagNorm === fieldNorm) return 1;
+  const synNorm = synonyms.map(normalize);
+  if (synNorm.includes(tagNorm)) return 1;
+  if (tagNorm.length >= 2 && fieldNorm.length >= 2) {
+    if (tagNorm.includes(fieldNorm) || fieldNorm.includes(tagNorm)) return 0.92;
+    for (const syn of synNorm) {
+      if (syn.length < 2) continue;
+      if (tagNorm.includes(syn) || syn.includes(tagNorm)) return 0.88;
+    }
+  }
+  const tagSet = new Set(tagNorm);
+  const fieldSet = new Set(fieldNorm);
+  let intersect = 0;
+  for (const c of tagSet) {
+    if (fieldSet.has(c)) intersect++;
+  }
+  const union = tagSet.size + fieldSet.size - intersect;
+  if (union === 0) return 0;
+  const jaccard = intersect / union;
+  if (jaccard >= 0.7) return 0.7 + jaccard * 0.2;
+  if (jaccard >= 0.5) return 0.5 + (jaccard - 0.5);
+  return jaccard * 0.8;
+}
+
+function looksLikeNumeric(value: string | undefined): boolean {
+  if (value == null || value === '') return true;
+  const t = String(value).trim();
+  if (t.length > 50) return false;
+  const n = parseFloat(t.replace(/\s/g, '').replace(',', '.'));
+  return Number.isFinite(n);
+}
+
+function looksLikeUrl(value: string | undefined): boolean {
+  if (value == null || value === '') return false;
+  const t = String(value).trim();
+  return /^https?:\/\//i.test(t) || /^\/\//.test(t) || t.startsWith('data:');
+}
+
+/** Her (alan, etiket) için puan hesapla; sonra açgözlü atama ile her etiket en fazla bir alana. */
+function computeSuggestions(
+  xmlTags: string[],
+  sampleValues: Record<string, string>,
+  fields: ReadonlyArray<{ key: string }>
+): Array<{ productField: string; xmlTag: string; confidence: number }> {
+  const tagNorm = (t: string) => normalize(t);
+  type Pair = { field: string; tag: string; score: number };
+  const pairs: Pair[] = [];
+
+  for (const field of fields) {
+    const key = field.key;
+    const synonyms = FIELD_SYNONYMS[key] ?? [key];
+    const fieldNorm = normalize(key);
+
+    for (const tag of xmlTags) {
+      const norm = tagNorm(tag);
+      let score = similarity(norm, fieldNorm, synonyms);
+
+      if (NUMERIC_FIELD_KEYS.includes(key) && looksLikeNumeric(sampleValues[tag])) {
+        score = Math.min(1, score + 0.12);
+      }
+      if ((key === 'image' || key === 'images') && looksLikeUrl(sampleValues[tag])) {
+        score = Math.min(1, score + 0.1);
+      }
+      if (score >= 0.35) {
+        pairs.push({ field: key, tag, score });
+      }
+    }
+  }
+
+  pairs.sort((a, b) => b.score - a.score);
+  const assignedField = new Set<string>();
+  const assignedTag = new Set<string>();
+  const result: Array<{ productField: string; xmlTag: string; confidence: number }> = [];
+
+  for (const { field, tag, score } of pairs) {
+    if (assignedField.has(field) || assignedTag.has(tag)) continue;
+    assignedField.add(field);
+    assignedTag.add(tag);
+    result.push({ productField: field, xmlTag: tag, confidence: Math.round(score * 100) / 100 });
+  }
+
+  return result;
+}
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
-    const xmlTags = Array.isArray(body.xmlTags) ? body.xmlTags as string[] : [];
-    const sampleValues = (typeof body.sampleValues === 'object' && body.sampleValues !== null)
-      ? (body.sampleValues as Record<string, string>)
-      : {};
+    const xmlTags = Array.isArray(body.xmlTags) ? (body.xmlTags as string[]) : [];
+    const sampleValues =
+      typeof body.sampleValues === 'object' && body.sampleValues !== null
+        ? (body.sampleValues as Record<string, string>)
+        : {};
 
     if (xmlTags.length === 0) {
       return NextResponse.json(
@@ -31,101 +208,29 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const apiKeyOpenAI = process.env.OPENAI_API_KEY;
-    const apiKeyGemini = process.env.GEMINI_API_KEY;
-
-    const tagsDesc = xmlTags.join(', ');
-    const samplesDesc = Object.keys(sampleValues).length
-      ? '\nÖrnek değerler: ' + JSON.stringify(sampleValues).slice(0, 1500)
-      : '';
-    const userContent = `XML etiketleri: ${tagsDesc}${samplesDesc}\n\nYukarıdaki etiketleri Product alanlarıyla eşleştir. JSON formatında suggestions ve variants döndür.`;
-
-    let rawResponse: string;
-
-    if (apiKeyOpenAI) {
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKeyOpenAI}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            { role: 'system', content: OPENAI_SYSTEM },
-            { role: 'user', content: userContent },
-          ],
-          temperature: 0.2,
-          max_tokens: 1500,
-        }),
-      });
-      if (!res.ok) {
-        const err = await res.text();
-        throw new Error(`OpenAI API ${res.status}: ${err}`);
-      }
-      const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }>; model?: string };
-      rawResponse = data.choices?.[0]?.message?.content?.trim() ?? '';
-    } else if (apiKeyGemini) {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKeyGemini}`;
-      const geminiBody = JSON.stringify({
-        contents: [{ parts: [{ text: `${OPENAI_SYSTEM}\n\n${userContent}` }] }],
-        generationConfig: { temperature: 0.2, maxOutputTokens: 1500 },
-      });
-      let res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: geminiBody,
-      });
-      if (res.status === 429) {
-        await new Promise((r) => setTimeout(r, 4000));
-        res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: geminiBody,
-        });
-      }
-      if (!res.ok) {
-        const err = await res.text();
-        if (res.status === 429) {
-          throw new Error(
-            'Gemini kota aşıldı. Birkaç dakika sonra tekrar deneyin veya OPENAI_API_KEY ekleyin.'
-          );
-        }
-        throw new Error(`Gemini API ${res.status}: ${err}`);
-      }
-      const data = (await res.json()) as {
-        candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-      };
-      rawResponse = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
-    } else {
-      return NextResponse.json(
-        { error: 'OPENAI_API_KEY veya GEMINI_API_KEY ortam değişkeni gerekli' },
-        { status: 503 }
-      );
-    }
-
-    const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
-    const jsonStr = jsonMatch ? jsonMatch[0] : rawResponse;
-    const parsed = JSON.parse(jsonStr) as {
-      suggestions?: Array<{ productField: string; xmlTag: string; confidence: number }>;
-      variants?: Array<{ productField: string; xmlTag: string; confidence: number }>;
-    };
-
-    const suggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions : [];
-    const variants = Array.isArray(parsed.variants) ? parsed.variants : [];
+    const suggestions = computeSuggestions(
+      xmlTags,
+      sampleValues,
+      PRODUCT_MAIN_FIELDS
+    );
+    const variants = computeSuggestions(
+      xmlTags,
+      sampleValues,
+      VARIANT_ATTRIBUTE_TYPES
+    );
 
     return NextResponse.json({
       suggestions: suggestions.map((s) => ({
         productField: s.productField,
         xmlTag: s.xmlTag ?? '',
-        confidence: typeof s.confidence === 'number' ? Math.min(1, Math.max(0, s.confidence)) : 0.5,
+        confidence: Math.min(1, Math.max(0, s.confidence)),
       })),
       variants: variants.map((v) => ({
         productField: v.productField,
         xmlTag: v.xmlTag ?? '',
-        confidence: typeof v.confidence === 'number' ? Math.min(1, Math.max(0, v.confidence)) : 0.5,
+        confidence: Math.min(1, Math.max(0, v.confidence)),
       })),
-      model: apiKeyOpenAI ? 'openai' : 'gemini',
+      model: 'algorithm',
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);

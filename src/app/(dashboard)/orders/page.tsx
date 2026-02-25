@@ -2,21 +2,30 @@
 
 import { Suspense, useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import {
   ShoppingCart,
-  Store,
   ChevronLeft,
   ChevronRight,
-  Filter,
   Package,
+  Clock,
+  CheckCircle2,
+  Loader2,
   Truck,
-  User,
-  CreditCard,
+  PackageCheck,
+  XCircle,
+  Undo2,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import {
   Select,
   SelectContent,
@@ -24,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { OrderDetailsSheet, type OrderDetail } from '@/components/orders/OrderDetailsSheet';
 
 const ORDER_STATUS_LABEL: Record<string, string> = {
   PENDING: 'Beklemede',
@@ -35,14 +45,31 @@ const ORDER_STATUS_LABEL: Record<string, string> = {
   REFUNDED: 'İade',
 };
 
-const ORDER_STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  PENDING: 'secondary',
-  CONFIRMED: 'default',
-  PROCESSING: 'default',
-  SHIPPED: 'default',
-  DELIVERED: 'default',
-  CANCELLED: 'destructive',
-  REFUNDED: 'outline',
+const ORDER_STATUS_STYLE: Record<string, string> = {
+  PENDING:
+    'border-amber-500/40 bg-amber-500/15 text-amber-700 dark:text-amber-400 shadow-sm',
+  CONFIRMED:
+    'border-blue-500/40 bg-blue-500/15 text-blue-700 dark:text-blue-400 shadow-sm',
+  PROCESSING:
+    'border-violet-500/40 bg-violet-500/15 text-violet-700 dark:text-violet-400 shadow-sm',
+  SHIPPED:
+    'border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 shadow-sm',
+  DELIVERED:
+    'border-green-500/40 bg-green-500/15 text-green-700 dark:text-green-400 shadow-sm',
+  CANCELLED:
+    'border-red-500/40 bg-red-500/15 text-red-700 dark:text-red-400 shadow-sm',
+  REFUNDED:
+    'border-slate-500/40 bg-slate-500/15 text-slate-600 dark:text-slate-400 shadow-sm',
+};
+
+const ORDER_STATUS_ICON: Record<string, typeof Clock> = {
+  PENDING: Clock,
+  CONFIRMED: CheckCircle2,
+  PROCESSING: Loader2,
+  SHIPPED: Truck,
+  DELIVERED: PackageCheck,
+  CANCELLED: XCircle,
+  REFUNDED: Undo2,
 };
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -58,6 +85,15 @@ const PLATFORM_LABELS: Record<string, string> = {
   PTTAVM: 'PTT Avm',
   MODANISA: 'Modanisa',
   ALLESGO: 'Allesgo',
+  WOOCOMMERCE: 'WooCommerce',
+  MAGENTO: 'Magento',
+  CIMRI: 'Cimri',
+  AKAKCE: 'Akakçe',
+  GOOGLE_MERCHANT: 'Google Merchant',
+  META_CATALOG: 'Meta Katalog',
+  GITTIGIDIYOR: 'GittiGidiyor',
+  EPTTAA: 'ePTTAA',
+  MORHIPO: 'Morhipo',
   OTHER: 'Diğer',
 };
 
@@ -74,15 +110,16 @@ const PLATFORM_COLOR: Record<string, string> = {
 };
 
 type StoreOption = { id: string; name: string; slug: string };
-type OrderItem = {
+type OrderItemApi = {
   id: string;
   sku: string;
   name: string;
   quantity: number;
   unitPrice: number | string;
   total: number | string;
+  product?: { id: string; images?: Array<{ url: string }> };
 };
-type Order = {
+type OrderApi = {
   id: string;
   orderNumber: string;
   storeId: string;
@@ -91,23 +128,24 @@ type Order = {
   status: string;
   customerName: string | null;
   customerEmail: string | null;
+  customerPhone?: string | null;
   total: number | string;
   currency: string;
+  shippingAddress: unknown;
+  billingAddress?: unknown;
   cargoTrackingNumber: string | null;
   cargoProvider: string | null;
   createdAt: string;
   store: { name: string; slug: string };
-  items: OrderItem[];
+  marketplaceConnection?: { id: string; platform: string } | null;
+  items: OrderItemApi[];
 };
 
 function OrdersFallback() {
   return (
     <div className="space-y-6">
       <div className="h-9 w-48 animate-pulse rounded bg-muted" />
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="h-64 animate-pulse rounded-lg bg-muted/50" />
-        <div className="h-64 animate-pulse rounded-lg bg-muted/50" />
-      </div>
+      <div className="h-64 animate-pulse rounded-lg bg-muted/50" />
     </div>
   );
 }
@@ -118,17 +156,22 @@ function OrdersPageContent() {
 
   const [stores, setStores] = useState<StoreOption[]>([]);
   const [storeId, setStoreId] = useState<string>('all');
-  const [status, setStatus] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [platformFilter, setPlatformFilter] = useState<string>('all');
+  const [paymentFilter, setPaymentFilter] = useState<string>('all');
+  const [dateFrom, setDateFrom] = useState<string>('');
+  const [dateTo, setDateTo] = useState<string>('');
   const [page, setPage] = useState(1);
   const [data, setData] = useState<{
-    orders: Order[];
+    orders: OrderApi[];
     total: number;
     page: number;
     limit: number;
     totalPages: number;
   } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [sheetOrder, setSheetOrder] = useState<OrderDetail | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
@@ -142,7 +185,11 @@ function OrdersPageContent() {
     setLoading(true);
     const params = new URLSearchParams();
     if (storeId && storeId !== 'all') params.set('storeId', storeId);
-    if (status && status !== 'all') params.set('status', status);
+    if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter);
+    if (platformFilter && platformFilter !== 'all') params.set('platform', platformFilter);
+    if (paymentFilter && paymentFilter !== 'all') params.set('paymentStatus', paymentFilter);
+    if (dateFrom) params.set('dateFrom', dateFrom);
+    if (dateTo) params.set('dateTo', dateTo);
     params.set('page', String(page));
     params.set('limit', '20');
     fetch(`/api/orders?${params}`)
@@ -153,22 +200,33 @@ function OrdersPageContent() {
       })
       .catch(() => setData({ orders: [], total: 0, page: 1, limit: 20, totalPages: 0 }))
       .finally(() => setLoading(false));
-  }, [storeId, status, page]);
+  }, [storeId, statusFilter, platformFilter, paymentFilter, dateFrom, dateTo, page]);
 
   useEffect(() => {
     if (!orderIdFromUrl) return;
     const inList = data?.orders?.find((o) => o.id === orderIdFromUrl);
     if (inList) {
-      setSelectedOrder(inList);
+      openSheet(inList);
       return;
     }
     fetch(`/api/orders/${orderIdFromUrl}`)
       .then((r) => r.json())
       .then((order) => {
-        if (order?.id) setSelectedOrder(order);
+        if (order?.id) openSheet(order);
       })
       .catch(() => {});
   }, [orderIdFromUrl, data?.orders]);
+
+  const openSheet = useCallback((order: OrderApi) => {
+    setSheetOrder(order as OrderDetail);
+    setSheetOpen(true);
+    fetch(`/api/orders/${order.id}`)
+      .then((r) => r.json())
+      .then((full) => {
+        if (full?.id) setSheetOrder(full as OrderDetail);
+      })
+      .catch(() => {});
+  }, []);
 
   const updateOrderStatus = useCallback((orderId: string, newStatus: string) => {
     setUpdating(true);
@@ -190,7 +248,7 @@ function OrdersPageContent() {
                 }
               : null
           );
-          setSelectedOrder((prev) =>
+          setSheetOrder((prev) =>
             prev?.id === orderId ? { ...prev, status: updated.status } : prev
           );
         }
@@ -202,253 +260,303 @@ function OrdersPageContent() {
   const totalPages = data?.totalPages ?? 0;
   const toPrice = (v: number | string, currency: string) =>
     Number.isFinite(Number(v))
-      ? new Intl.NumberFormat('tr-TR', { style: 'currency', currency: currency || 'TRY' }).format(Number(v))
+      ? new Intl.NumberFormat('tr-TR', { style: 'currency', currency: currency || 'TRY' }).format(
+          Number(v)
+        )
       : '–';
+
+  const PLATFORM_OPTIONS = Object.keys(PLATFORM_LABELS).filter((k) => k !== 'OTHER');
+
+  const PAYMENT_LABELS: Record<string, string> = {
+    PENDING: 'Beklemede',
+    PAID: 'Ödendi',
+    FAILED: 'Başarısız',
+    REFUNDED: 'İade',
+    PARTIAL_REFUND: 'Kısmi iade',
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Siparişler</h1>
-          <p className="text-muted-foreground">
-            Tüm kanallardan (B2C, B2B, pazaryeri) gelen siparişler. Listeden bir sipariş seçerek detayını görün.
-          </p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold">Siparişler</h1>
+        <p className="text-muted-foreground">
+          Tüm kanallardan gelen siparişler. Tabloda bir satıra tıklayarak detayı açın.
+        </p>
       </div>
 
-      <Card>
+      <Card className="rounded-xl border shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Filter className="h-4 w-4" />
-            Filtreler
-          </CardTitle>
+          <CardTitle className="text-base">Filtreler</CardTitle>
+          <CardDescription>Mağaza, durum ve pazaryeri ile daraltın</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-4">
+        <CardContent className="space-y-4">
+            <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">Mağaza</span>
-              <Select value={storeId} onValueChange={(v) => { setStoreId(v); setPage(1); }}>
+              <Select
+                value={storeId}
+                onValueChange={(v) => {
+                  setStoreId(v);
+                  setPage(1);
+                }}
+              >
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="Tümü" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tüm mağazalar</SelectItem>
                   {stores.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">Durum</span>
-              <Select value={status} onValueChange={(v) => { setStatus(v); setPage(1); }}>
+              <Select
+                value={statusFilter}
+                onValueChange={(v) => {
+                  setStatusFilter(v);
+                  setPage(1);
+                }}
+              >
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Tümü" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tüm durumlar</SelectItem>
                   {Object.entries(ORDER_STATUS_LABEL).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Ödeme</span>
+              <Select
+                value={paymentFilter}
+                onValueChange={(v) => {
+                  setPaymentFilter(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="Tümü" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tümü</SelectItem>
+                  {Object.entries(PAYMENT_LABELS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Tarih</span>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => {
+                  setDateFrom(e.target.value);
+                  setPage(1);
+                }}
+                className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
+              />
+              <span className="text-muted-foreground">–</span>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => {
+                  setDateTo(e.target.value);
+                  setPage(1);
+                }}
+                className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
+              />
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <span className="text-sm text-muted-foreground self-center">Pazaryeri:</span>
+            <Button
+              variant={platformFilter === 'all' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setPlatformFilter('all');
+                setPage(1);
+              }}
+            >
+              Tümü
+            </Button>
+            {PLATFORM_OPTIONS.map((p) => (
+              <Button
+                key={p}
+                variant={platformFilter === p ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  setPlatformFilter(p);
+                  setPage(1);
+                }}
+              >
+                {PLATFORM_LABELS[p] ?? p}
+              </Button>
+            ))}
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr,400px]">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5" />
-              Sipariş listesi
-            </CardTitle>
-            <CardDescription>
-              Toplam {data?.total ?? 0} sipariş · Sayfa {data?.page ?? 1} / {totalPages || 1}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="flex min-h-[280px] items-center justify-center rounded-lg border border-dashed bg-muted/20">
-                <p className="text-sm text-muted-foreground">Yükleniyor…</p>
+      <Card className="overflow-hidden border-0 shadow-lg shadow-black/5 dark:shadow-none dark:ring-1 dark:ring-border">
+        <CardHeader className="border-b bg-muted/30 pb-4">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <div className="rounded-lg bg-primary/10 p-2">
+              <ShoppingCart className="h-5 w-5 text-primary" />
+            </div>
+            Sipariş listesi
+          </CardTitle>
+          <CardDescription className="text-muted-foreground">
+            Toplam <span className="font-semibold text-foreground">{data?.total ?? 0}</span> sipariş
+            · Sayfa {data?.page ?? 1} / {totalPages || 1}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="flex min-h-[240px] items-center justify-center rounded-xl border border-dashed border-muted-foreground/20 bg-muted/10">
+              <p className="text-sm text-muted-foreground">Yükleniyor…</p>
+            </div>
+          ) : orders.length === 0 ? (
+            <div className="flex min-h-[240px] flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-muted-foreground/20 bg-muted/10 p-8">
+              <div className="rounded-full bg-muted p-4">
+                <Package className="h-10 w-10 text-muted-foreground" />
               </div>
-            ) : orders.length === 0 ? (
-              <div className="flex min-h-[280px] flex-col items-center justify-center gap-2 rounded-lg border border-dashed bg-muted/20">
-                <Package className="h-12 w-12 text-muted-foreground" />
-                <p className="text-sm font-medium">Henüz sipariş yok</p>
-                <p className="text-center text-sm text-muted-foreground">
-                  Pazaryeri veya B2C kanallarından gelen siparişler burada listelenir.
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {orders.map((order) => (
-                    <button
-                      key={order.id}
-                      type="button"
-                      onClick={() => setSelectedOrder(order)}
-                      className={`rounded-lg border p-4 text-left transition-colors hover:bg-muted/60 ${
-                        selectedOrder?.id === order.id ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : ''
-                      }`}
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div>
-                          <p className="font-semibold">#{order.orderNumber}</p>
-                          <p className="text-xs text-muted-foreground">{order.store.name}</p>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {order.platform && (
-                            <Badge
-                              variant="outline"
-                              className={`text-xs font-medium ${PLATFORM_COLOR[order.platform] ?? PLATFORM_COLOR.OTHER}`}
+              <p className="text-sm font-medium">Henüz sipariş yok</p>
+              <p className="text-center text-sm text-muted-foreground">
+                Pazaryeri veya B2C kanallarından gelen siparişler burada listelenir.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="overflow-hidden rounded-b-xl">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-b bg-muted/40 hover:bg-muted/40">
+                      <TableHead className="font-semibold">Sipariş No</TableHead>
+                      <TableHead className="font-semibold">Pazaryeri</TableHead>
+                      <TableHead className="font-semibold">Müşteri</TableHead>
+                      <TableHead className="text-right font-semibold">Toplam</TableHead>
+                      <TableHead className="font-semibold">Tarih</TableHead>
+                      <TableHead className="font-semibold">Durum</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {orders.map((order) => {
+                      const StatusIcon = ORDER_STATUS_ICON[order.status] ?? Clock;
+                      return (
+                        <TableRow
+                          key={order.id}
+                          className="cursor-pointer border-b transition-colors hover:bg-primary/5 hover:shadow-sm"
+                          onClick={() => openSheet(order)}
+                        >
+                          <TableCell className="font-mono font-medium">
+                            #{order.orderNumber}
+                          </TableCell>
+                          <TableCell>
+                            {order.platform ? (
+                              <Badge
+                                variant="outline"
+                                className={
+                                  PLATFORM_COLOR[order.platform] ?? PLATFORM_COLOR.OTHER
+                                }
+                              >
+                                {PLATFORM_LABELS[order.platform] ?? order.platform}
+                              </Badge>
+                            ) : (
+                              '—'
+                            )}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {order.customerName || order.customerEmail || '—'}
+                          </TableCell>
+                          <TableCell className="text-right font-semibold tabular-nums">
+                            {toPrice(order.total, order.currency)}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-sm">
+                            {new Date(order.createdAt).toLocaleDateString('tr-TR', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Select
+                              value={order.status}
+                              onValueChange={(v) => updateOrderStatus(order.id, v)}
+                              disabled={updating}
                             >
-                              {PLATFORM_LABELS[order.platform] ?? order.platform}
-                            </Badge>
-                          )}
-                          <Badge variant={ORDER_STATUS_VARIANT[order.status] ?? 'secondary'}>
-                            {ORDER_STATUS_LABEL[order.status] ?? order.status}
-                          </Badge>
-                        </div>
-                      </div>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        {order.customerName || order.customerEmail || '—'}
-                      </p>
-                      <p className="mt-1 text-sm font-semibold">
-                        {toPrice(order.total, order.currency)}
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {new Date(order.createdAt).toLocaleDateString('tr-TR', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </p>
-                    </button>
-                  ))}
-                </div>
-                {totalPages > 1 && (
-                  <div className="mt-4 flex items-center justify-between border-t pt-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={page <= 1}
-                      onClick={() => setPage((p) => p - 1)}
-                    >
-                      <ChevronLeft className="h-4 w-4" /> Önceki
-                    </Button>
-                    <span className="text-sm text-muted-foreground">
-                      Sayfa {page} / {totalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={page >= totalPages}
-                      onClick={() => setPage((p) => p + 1)}
-                    >
-                      Sonraki <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="h-fit lg:sticky lg:top-4">
-          <CardHeader>
-            <CardTitle className="text-base">Sipariş detayı</CardTitle>
-            <CardDescription>
-              {selectedOrder ? `#${selectedOrder.orderNumber}` : 'Listeden bir sipariş seçin'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {!selectedOrder ? (
-              <div className="flex min-h-[240px] flex-col items-center justify-center gap-2 rounded-lg border border-dashed bg-muted/20 py-8">
-                <ShoppingCart className="h-10 w-10 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Sipariş seçilmedi</p>
-                <p className="text-center text-xs text-muted-foreground">
-                  Soldaki listeden bir siparişe tıklayın
-                </p>
+                              <SelectTrigger
+                                className={`h-8 w-[140px] border shadow-sm ${
+                                  ORDER_STATUS_STYLE[order.status] ??
+                                  'border-border bg-muted/50 text-muted-foreground'
+                                }`}
+                              >
+                                <StatusIcon className="mr-1.5 h-3.5 w-3.5 shrink-0" />
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Object.entries(ORDER_STATUS_LABEL).map(([value, label]) => (
+                                  <SelectItem key={value} value={value}>
+                                    {label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
               </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex flex-wrap gap-2">
-                  {selectedOrder.platform && (
-                    <Badge
-                      variant="outline"
-                      className={PLATFORM_COLOR[selectedOrder.platform] ?? PLATFORM_COLOR.OTHER}
-                    >
-                      {PLATFORM_LABELS[selectedOrder.platform] ?? selectedOrder.platform}
-                    </Badge>
-                  )}
-                  <Badge variant={ORDER_STATUS_VARIANT[selectedOrder.status] ?? 'secondary'}>
-                    {ORDER_STATUS_LABEL[selectedOrder.status] ?? selectedOrder.status}
-                  </Badge>
-                </div>
-                <div className="grid gap-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Mağaza</span>
-                    <span>{selectedOrder.store.name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Müşteri</span>
-                    <span>{selectedOrder.customerName || selectedOrder.customerEmail || '—'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Toplam</span>
-                    <span className="font-semibold">{toPrice(selectedOrder.total, selectedOrder.currency)}</span>
-                  </div>
-                  {(selectedOrder.cargoProvider || selectedOrder.cargoTrackingNumber) && (
-                    <div className="flex justify-between gap-2">
-                      <span className="text-muted-foreground flex items-center gap-1">
-                        <Truck className="h-3.5 w-3" /> Kargo
-                      </span>
-                      <span className="text-right text-xs">
-                        {selectedOrder.cargoProvider && `${selectedOrder.cargoProvider} · `}
-                        {selectedOrder.cargoTrackingNumber || '—'}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <p className="mb-2 text-sm font-medium flex items-center gap-1">
-                    <Package className="h-3.5 w-3" /> Kalemler
-                  </p>
-                  <ul className="rounded-md border divide-y">
-                    {selectedOrder.items.map((item) => (
-                      <li key={item.id} className="flex justify-between px-3 py-2 text-sm">
-                        <span>{item.name} × {item.quantity}</span>
-                        <span>{toPrice(item.total, selectedOrder.currency)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="flex items-center gap-2 pt-2">
-                  <span className="text-sm text-muted-foreground">Durum</span>
-                  <Select
-                    value={selectedOrder.status}
-                    onValueChange={(v) => updateOrderStatus(selectedOrder.id, v)}
-                    disabled={updating}
+              {totalPages > 1 && (
+                <div className="mt-4 flex items-center justify-between border-t pt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page <= 1}
+                    onClick={() => setPage((p) => p - 1)}
                   >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(ORDER_STATUS_LABEL).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>{label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <ChevronLeft className="h-4 w-4" /> Önceki
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Sayfa {page} / {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page >= totalPages}
+                    onClick={() => setPage((p) => p + 1)}
+                  >
+                    Sonraki <ChevronRight className="h-4 w-4" />
+                  </Button>
                 </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <OrderDetailsSheet
+        order={sheetOrder}
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        onStatusChange={updateOrderStatus}
+        updating={updating}
+      />
     </div>
   );
 }

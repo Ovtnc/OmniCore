@@ -88,6 +88,12 @@ export type JobDataMap = {
     payload: Record<string, unknown>;
     listingId?: string;
     productId?: string;
+    /** Sadece bu bağlantılara gönder; yoksa tüm aktif bağlantılar */
+    connectionIds?: string[];
+    /** Prisma Job.id - UI'da iş listesi için; worker tamamlayınca günceller */
+    jobId?: string;
+    /** Toplam ürün sayısı (jobId ile birlikte; tamamlanan sayıyla karşılaştırılır) */
+    totalProducts?: number;
   };
   accounting: {
     storeId: string;

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Truck, Plus, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Truck, Plus, Trash2, ToggleLeft, ToggleRight, Play, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -48,6 +48,8 @@ export default function LogisticsPage() {
     defaultWeight: '',
   });
   const [error, setError] = useState('');
+  const [testingId, setTestingId] = useState<string | null>(null);
+  const [testMessage, setTestMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     fetch('/api/stores')
@@ -136,6 +138,19 @@ export default function LogisticsPage() {
       .catch(() => {});
   };
 
+  const handleTest = (id: string) => {
+    setTestMessage(null);
+    setTestingId(id);
+    fetch(`/api/stores/${storeId}/logistics-settings/${id}/test`, { method: 'POST' })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.ok) setTestMessage({ type: 'success', text: data.message ?? 'Bağlantı test edildi' });
+        else setTestMessage({ type: 'error', text: data.error ?? 'Test başarısız' });
+      })
+      .catch(() => setTestMessage({ type: 'error', text: 'Test yapılamadı' }))
+      .finally(() => setTestingId(null));
+  };
+
   return (
     <div>
       <div className="mb-6">
@@ -188,10 +203,21 @@ export default function LogisticsPage() {
             </CardHeader>
             <CardContent>
               {loading ? (
-                <p className="text-muted-foreground py-4">Yükleniyor...</p>
+                <p className="py-4 text-muted-foreground">Yükleniyor...</p>
               ) : (
                 <>
-                  <div className="flex justify-end mb-4">
+                  {testMessage && (
+                    <p
+                      className={`mb-4 rounded-md border px-3 py-2 text-sm ${
+                        testMessage.type === 'success'
+                          ? 'border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400'
+                          : 'border-destructive/30 bg-destructive/10 text-destructive'
+                      }`}
+                    >
+                      {testMessage.text}
+                    </p>
+                  )}
+                  <div className="mb-4 flex justify-end">
                     <Button onClick={() => setShowForm(!showForm)}>
                       <Plus className="h-4 w-4 mr-2" />
                       Kargo Ekle
@@ -282,6 +308,20 @@ export default function LogisticsPage() {
                             )}
                           </div>
                           <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleTest(s.id)}
+                              disabled={testingId !== null}
+                              title="Bağlantıyı test et"
+                            >
+                              {testingId === s.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Play className="h-4 w-4" />
+                              )}
+                              <span className="ml-1.5 hidden sm:inline">Test et</span>
+                            </Button>
                             <Button
                               variant="ghost"
                               size="icon"

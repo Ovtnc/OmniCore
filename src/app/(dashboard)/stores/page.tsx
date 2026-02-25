@@ -10,11 +10,21 @@ import {
   ShoppingCart,
   Building2,
   ExternalLink,
+  Trash2,
+  Loader2,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 type Store = {
   id: string;
@@ -41,6 +51,9 @@ export default function StoresPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', slug: '', currency: 'TRY' });
   const [error, setError] = useState('');
+  const [deleteStore, setDeleteStore] = useState<Store | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   const fetchStores = () => {
     setLoading(true);
@@ -78,6 +91,28 @@ export default function StoresPage() {
       })
       .catch((err) => setError(typeof err === 'string' ? err : err?.error ?? 'Mağaza oluşturulamadı'))
       .finally(() => setSaving(false));
+  };
+
+  const handleDelete = (store: Store) => {
+    setDeleteStore(store);
+    setDeleteError('');
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteStore) return;
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      const res = await fetch(`/api/stores/${deleteStore.id}`, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? 'Silinemedi');
+      setDeleteStore(null);
+      fetchStores();
+    } catch (err) {
+      setDeleteError(typeof err === 'string' ? err : (err as Error).message);
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const slugFromName = (name: string) =>
@@ -252,6 +287,15 @@ export default function StoresPage() {
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Link>
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDelete(store)}
+                        title="Mağazayı sil"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -260,6 +304,37 @@ export default function StoresPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!deleteStore} onOpenChange={(open) => !open && setDeleteStore(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Mağazayı sil</DialogTitle>
+            <DialogDescription>
+              <span className="font-semibold text-foreground">{deleteStore?.name}</span> mağazası kalıcı olarak
+              silinecek. Bu mağazaya ait tüm ürünler, siparişler, pazaryeri bağlantıları ve diğer veriler silinir.
+              Bu işlem geri alınamaz.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteError && (
+            <p className="text-sm text-destructive">{deleteError}</p>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteStore(null)} disabled={deleting}>
+              İptal
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={deleting}>
+              {deleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Siliniyor…
+                </>
+              ) : (
+                'Mağazayı sil'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

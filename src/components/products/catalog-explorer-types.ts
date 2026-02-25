@@ -27,3 +27,9 @@ export type ExplorerData =
       category: { id: string; name: string; slug: string };
       products: ProductItem[];
     };
+
+export type UploadDialogPayload = {
+  storeId: string;
+  categoryId: string;
+  categoryName: string;
+};

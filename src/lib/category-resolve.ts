@@ -14,10 +14,14 @@ function slugify(s: string): string {
     .replace(/^-|-$/g, '') || 'kategori';
 }
 
+/**
+ * @param externalId - Pazaryeri kategori ID (örn. Trendyol); oluşturulan/güncellenen kategoriye yazılır.
+ */
 export async function resolveOrCreateCategory(
   storeId: string,
   categoryName: string,
-  parentId: string | null = null
+  parentId: string | null = null,
+  externalId: string | null = null
 ): Promise<string | null> {
   const name = categoryName.trim();
   if (!name) return null;
@@ -29,7 +33,15 @@ export async function resolveOrCreateCategory(
       name: { equals: name, mode: 'insensitive' },
     },
   });
-  if (existing) return existing.id;
+  if (existing) {
+    if (externalId != null && existing.externalId !== externalId) {
+      await prisma.category.update({
+        where: { id: existing.id },
+        data: { externalId },
+      });
+    }
+    return existing.id;
+  }
 
   let baseSlug = slugify(name);
   let slug = baseSlug;
@@ -44,6 +56,7 @@ export async function resolveOrCreateCategory(
       parentId,
       name,
       slug,
+      ...(externalId != null ? { externalId } : {}),
     },
   });
   return category.id;

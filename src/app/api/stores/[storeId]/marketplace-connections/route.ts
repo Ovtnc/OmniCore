@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import type { MarketplacePlatform } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 import { encryptCredentials } from '@/lib/credentials';
+import { getMarketplaceAdapter } from '@/services/marketplaces';
+import { toUserFriendlyConnectionError } from '@/lib/marketplace-connection-errors';
 
 /**
  * GET - Mağazanın pazaryeri bağlantılarını listele
@@ -64,7 +66,27 @@ export async function POST(
       );
     }
 
-    const connection = await prisma.marketplaceConnection.create({
+    const adapter = getMarketplaceAdapter(platform);
+    const connection = {
+      apiKey: apiKey ?? undefined,
+      apiSecret: apiSecret ?? undefined,
+      sellerId: sellerId ?? undefined,
+      supplierId: sellerId ?? undefined,
+      ...(typeof extraConfig === 'object' && extraConfig !== null
+        ? Object.fromEntries(
+            Object.entries(extraConfig).filter(([, v]) => typeof v === 'string') as [string, string][]
+          )
+        : {}),
+    };
+    const testResult = await adapter.testConnection(connection);
+    if (!testResult.ok) {
+      const { status: errStatus, error: userMsg } = toUserFriendlyConnectionError(
+        testResult.message ?? 'Bağlantı doğrulanamadı'
+      );
+      return NextResponse.json({ error: userMsg }, { status: errStatus });
+    }
+
+    const connectionRecord = await prisma.marketplaceConnection.create({
       data: {
         storeId,
         platform,
@@ -77,10 +99,10 @@ export async function POST(
     });
 
     return NextResponse.json({
-      id: connection.id,
-      platform: connection.platform,
-      isActive: connection.isActive,
-      createdAt: connection.createdAt,
+      id: connectionRecord.id,
+      platform: connectionRecord.platform,
+      isActive: connectionRecord.isActive,
+      createdAt: connectionRecord.createdAt,
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
@@ -91,9 +113,10 @@ export async function POST(
       );
     }
     console.error('Marketplace connection create error:', e);
+    const { status: errStatus, error: userMsg } = toUserFriendlyConnectionError(message);
     return NextResponse.json(
-      { error: 'Bağlantı eklenemedi' },
-      { status: 500 }
+      { error: userMsg },
+      { status: errStatus >= 400 && errStatus < 600 ? errStatus : 500 }
     );
   }
 }

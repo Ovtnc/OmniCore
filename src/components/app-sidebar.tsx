@@ -3,6 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -11,7 +12,9 @@ import {
   Store,
   Link2,
   Calculator,
+  Wallet,
   Truck,
+  Users,
   Wrench,
   FileCode2,
   Headphones,
@@ -21,6 +24,7 @@ import {
   Search,
   Star,
   X,
+  LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -30,8 +34,33 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { useSession } from 'next-auth/react';
 
 const SIDEBAR_WIDTH = 280;
+
+function UserBlock() {
+  const { data: session, status } = useSession();
+  if (status !== 'authenticated' || !session?.user) return null;
+  return (
+    <div className="flex flex-col gap-1">
+      <p className="truncate px-1 text-xs text-muted-foreground" title={session.user.email ?? ''}>
+        {session.user.email}
+      </p>
+      {session.user.plan && (
+        <p className="truncate px-1 text-xs font-medium text-primary">{session.user.plan}</p>
+      )}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+        onClick={() => signOut({ callbackUrl: '/login' })}
+      >
+        <LogOut className="h-4 w-4" />
+        Çıkış yap
+      </Button>
+    </div>
+  );
+}
 
 const navMain = [
   {
@@ -46,7 +75,9 @@ const navMain = [
   { title: 'Siparişler', href: '/orders', icon: ShoppingCart },
   { title: 'Pazaryeri', href: '/marketplace', icon: Link2 },
   { title: 'Muhasebe', href: '/accounting', icon: Calculator },
+  { title: 'Ödemeler', href: '/payments', icon: Wallet },
   { title: 'Lojistik', href: '/logistics', icon: Truck },
+  { title: 'B2B', href: '/b2b', icon: Users },
   { title: 'Raporlar', href: '/reports', icon: BarChart3 },
   { title: 'Araçlar', href: '/tools', icon: Wrench },
   { title: 'XML Kurulum Sihirbazı', href: '/xml-wizard', icon: FileCode2 },
@@ -181,34 +212,13 @@ export function AppSidebar({ onClose }: { onClose?: () => void }) {
         })}
       </nav>
 
-      {/* Hızlı erişim */}
-      <div className="border-t p-3">
-        <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Hızlı Erişim
-        </p>
-        <div className="space-y-0.5">
-          {navQuick.map((item) => (
-            <Link
-              key={item.href + item.title}
-              href={item.href}
-              onClick={onClose}
-              className={cn(
-                'flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground',
-                pathname === item.href && 'bg-accent text-foreground'
-              )}
-            >
-              <item.icon className="h-4 w-4 shrink-0" />
-              {item.title}
-              <ChevronRight className="ml-auto h-4 w-4" />
-            </Link>
-          ))}
+      {/* Kullanıcı + Çıkış */}
+      <div className="mt-auto border-t p-3 space-y-2">
+        <UserBlock />
+        <div className="flex items-center justify-between">
+          <ThemeToggle />
+          <span className="text-xs text-muted-foreground">v1.0.0</span>
         </div>
-      </div>
-
-      {/* Alt: tema + versiyon */}
-      <div className="flex items-center justify-between border-t p-3">
-        <ThemeToggle />
-        <span className="text-xs text-muted-foreground">v1.0.0 · 2025 OmniCore</span>
       </div>
     </aside>
   );

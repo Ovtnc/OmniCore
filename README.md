@@ -43,6 +43,9 @@ pnpm db:push
 
 # Geliştirme
 pnpm dev
+
+# Production build (sayfa bulunamadı hatası alırsanız: rm -rf .next && pnpm build)
+pnpm build
 ```
 
 - **Dashboard:** http://localhost:3000  

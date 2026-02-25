@@ -25,6 +25,8 @@ export type PreviewItem = {
   barcode: string | null;
   brand: string | null;
   categoryName: string | null;
+  trendyolBrandId: number | null;
+  trendyolCategoryId: number | null;
   imageUrls: string[];
 };
 
@@ -49,6 +51,13 @@ type ProductPreviewTableProps = {
 };
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
+
+/** Dış CDN görselleri CORS engeline takılmasın diye proxy üzerinden gösterir. */
+function PreviewImage({ src, alt, className }: { src: string; alt: string; className?: string }) {
+  const isExternal = /^https?:\/\//i.test(src);
+  const url = isExternal ? `/api/proxy-image?url=${encodeURIComponent(src)}` : src;
+  return <img src={url} alt={alt} className={className} referrerPolicy="no-referrer" />;
+}
 
 export function ProductPreviewTable({
   items,
@@ -167,6 +176,8 @@ export function ProductPreviewTable({
                     <TableHead className="font-medium">Ürün</TableHead>
                     <TableHead className="font-medium">SKU / Barkod</TableHead>
                     <TableHead className="font-medium">Kategori</TableHead>
+                    <TableHead className="font-medium text-center">Trendyol Marka ID</TableHead>
+                    <TableHead className="font-medium text-center">Trendyol Kategori ID</TableHead>
                     <TableHead className="text-right font-medium">Satış fiyatı</TableHead>
                     <TableHead className="text-right font-medium">Stok</TableHead>
                     <TableHead className="w-24 font-medium">Durum</TableHead>
@@ -188,11 +199,7 @@ export function ProductPreviewTable({
                         <TableCell>
                           <div className="flex items-center gap-3">
                             {row.imageUrls[0] ? (
-                              <img
-                                src={row.imageUrls[0]}
-                                alt=""
-                                className="h-10 w-10 shrink-0 rounded object-cover"
-                              />
+                              <PreviewImage src={row.imageUrls[0]} alt="" className="h-10 w-10 shrink-0 rounded object-cover" />
                             ) : (
                               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-muted">
                                 <Package className="h-4 w-4 text-muted-foreground" />
@@ -212,6 +219,12 @@ export function ProductPreviewTable({
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm">
                           {row.categoryName ?? '–'}
+                        </TableCell>
+                        <TableCell className="text-center text-muted-foreground text-sm font-mono">
+                          {row.trendyolBrandId != null ? row.trendyolBrandId : '–'}
+                        </TableCell>
+                        <TableCell className="text-center text-muted-foreground text-sm font-mono">
+                          {row.trendyolCategoryId != null ? row.trendyolCategoryId : '–'}
                         </TableCell>
                         <TableCell className="text-right">{toPrice(row.salePrice)}</TableCell>
                         <TableCell className="text-right">

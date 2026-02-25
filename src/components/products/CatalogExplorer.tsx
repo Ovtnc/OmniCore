@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import type { ExplorerData } from './catalog-explorer-types';
 import { CatalogExplorerContent } from './CatalogExplorerContent';
+import { CategoryUploadDialog } from './CategoryUploadDialog';
+import type { UploadDialogPayload } from './catalog-explorer-types';
 
 export function CatalogExplorer() {
   const searchParams = useSearchParams();
@@ -11,6 +13,8 @@ export function CatalogExplorer() {
   const categoryId = searchParams.get('categoryId') ?? '';
   const [data, setData] = useState<ExplorerData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [uploadPayload, setUploadPayload] = useState<UploadDialogPayload | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -49,12 +53,29 @@ export function CatalogExplorer() {
       </div>
     );
   }
+  const handleUploadClick = (payload: UploadDialogPayload) => {
+    setUploadPayload(payload);
+    setUploadDialogOpen(true);
+  };
+
   return (
-    <CatalogExplorerContent
-      data={data}
-      buildUrl={buildUrl}
-      storeId={storeId}
-      categoryId={categoryId}
-    />
+    <>
+      <CatalogExplorerContent
+        data={data}
+        buildUrl={buildUrl}
+        storeId={storeId}
+        categoryId={categoryId}
+        onUploadToMarketplace={handleUploadClick}
+      />
+      {uploadPayload && (
+        <CategoryUploadDialog
+          open={uploadDialogOpen}
+          onOpenChange={setUploadDialogOpen}
+          storeId={uploadPayload.storeId}
+          categoryId={uploadPayload.categoryId}
+          categoryName={uploadPayload.categoryName}
+        />
+      )}
+    </>
   );
 }

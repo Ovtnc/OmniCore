@@ -42,38 +42,44 @@ export async function POST(req: NextRequest) {
       Array.isArray(urls) ? urls.filter((u): u is string => typeof u === 'string') : [];
 
     for (const item of toImport) {
+      const updatePayload = {
+        name: item.name,
+        description: item.description,
+        shortDescription: item.shortDescription,
+        barcode: item.barcode,
+        brand: item.brand,
+        listPrice: item.listPrice,
+        salePrice: item.salePrice,
+        stockQuantity: item.stockQuantity,
+        updatedAt: new Date(),
+        ...(item.trendyolBrandId != null && item.trendyolBrandId > 0 ? { trendyolBrandId: item.trendyolBrandId } : {}),
+        ...(item.trendyolCategoryId != null && item.trendyolCategoryId > 0 ? { trendyolCategoryId: item.trendyolCategoryId } : {}),
+        ...(item.attributes && typeof item.attributes === 'object' && Object.keys(item.attributes as object).length > 0
+          ? { attributes: item.attributes as object }
+          : {}),
+      };
+      const createPayload = {
+        storeId: item.storeId,
+        sku: item.sku,
+        name: item.name,
+        slug: item.slug,
+        description: item.description,
+        shortDescription: item.shortDescription,
+        barcode: item.barcode,
+        brand: item.brand,
+        listPrice: item.listPrice,
+        salePrice: item.salePrice,
+        stockQuantity: item.stockQuantity,
+        ...(item.trendyolBrandId != null && item.trendyolBrandId > 0 ? { trendyolBrandId: item.trendyolBrandId } : {}),
+        ...(item.trendyolCategoryId != null && item.trendyolCategoryId > 0 ? { trendyolCategoryId: item.trendyolCategoryId } : {}),
+        ...(item.attributes && typeof item.attributes === 'object' && Object.keys(item.attributes as object).length > 0
+          ? { attributes: item.attributes as object }
+          : {}),
+      };
       const product = await prisma.product.upsert({
         where: { storeId_sku: { storeId, sku: item.sku } },
-        update: {
-          name: item.name,
-          description: item.description,
-          shortDescription: item.shortDescription,
-          barcode: item.barcode,
-          brand: item.brand,
-          listPrice: item.listPrice,
-          salePrice: item.salePrice,
-          stockQuantity: item.stockQuantity,
-          updatedAt: new Date(),
-          ...(item.attributes && typeof item.attributes === 'object' && Object.keys(item.attributes as object).length > 0
-            ? { attributes: item.attributes as object }
-            : {}),
-        },
-        create: {
-          storeId: item.storeId,
-          sku: item.sku,
-          name: item.name,
-          slug: item.slug,
-          description: item.description,
-          shortDescription: item.shortDescription,
-          barcode: item.barcode,
-          brand: item.brand,
-          listPrice: item.listPrice,
-          salePrice: item.salePrice,
-          stockQuantity: item.stockQuantity,
-          ...(item.attributes && typeof item.attributes === 'object' && Object.keys(item.attributes as object).length > 0
-            ? { attributes: item.attributes as object }
-            : {}),
-        },
+        update: updatePayload,
+        create: createPayload,
       });
 
       const urls = imageUrlsArr(item.imageUrls);
@@ -90,7 +96,7 @@ export async function POST(req: NextRequest) {
       }
 
       if (item.categoryName?.trim()) {
-        const categoryId = await resolveOrCreateCategory(storeId, item.categoryName.trim());
+        const categoryId = await resolveOrCreateCategory(storeId, item.categoryName.trim(), null);
         if (categoryId) {
           await setProductCategory(product.id, categoryId, true);
         }
@@ -110,11 +116,15 @@ export async function POST(req: NextRequest) {
       created++;
     }
 
-    await prisma.xmlImportItem.deleteMany({ where: { batchId } });
-    await prisma.xmlImportBatch.update({
-      where: { id: batchId },
-      data: { status: 'COMPLETED' },
-    });
+    const importedIds = toImport.map((i) => i.id);
+    await prisma.xmlImportItem.deleteMany({ where: { id: { in: importedIds } } });
+    const remaining = await prisma.xmlImportItem.count({ where: { batchId } });
+    if (remaining === 0) {
+      await prisma.xmlImportBatch.update({
+        where: { id: batchId },
+        data: { status: 'COMPLETED' },
+      });
+    }
 
     return NextResponse.json({
       ok: true,

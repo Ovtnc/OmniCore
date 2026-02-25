@@ -1,0 +1,36 @@
+# OmniCore - Docker image build (CI doğrulama)
+# Push/PR'da image'ın hatasız build olduğunu doğrular.
+# Deploy için ayrı workflow veya manuel docker compose up kullanın.
+
+name: Docker build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  POSTGRES_USER: omnicore
+  POSTGRES_PASSWORD: placeholder
+  POSTGRES_DB: omnicore
+  REDIS_PASSWORD: ""
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        run: docker compose build
+        env:
+          # Build aşamasında DB/Redis bağlantısı gerekmez; placeholder yeterli
+          POSTGRES_USER: omnicore
+          POSTGRES_PASSWORD: placeholder
+          POSTGRES_DB: omnicore
+          REDIS_PASSWORD: ""

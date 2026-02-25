@@ -13,7 +13,15 @@ export async function GET(
       where: { id: orderId },
       include: {
         store: { select: { name: true, slug: true } },
-        items: true,
+        marketplaceConnection: { select: { id: true, platform: true } },
+        items: {
+          include: {
+            product: {
+              select: { id: true },
+              include: { images: { take: 1, orderBy: { sortOrder: 'asc' } } },
+            },
+          },
+        },
         b2bCustomer: { select: { code: true, name: true } },
       },
     });

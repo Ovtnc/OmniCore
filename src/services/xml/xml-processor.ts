@@ -8,6 +8,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { prisma } from '@/lib/prisma';
 import { marketplaceSyncQueue } from '@/lib/queue';
 import { resolveOrCreateCategory, setProductCategory } from '@/lib/category-resolve';
+import { resolveTrendyolIds } from '@/services/trendyol-lookup';
 
 const parser = new XMLParser({
   ignoreAttributes: false,
@@ -155,6 +156,10 @@ function itemToProductDataWithMapping(
   });
 
   const categoryName = getStr('category') || null;
+  const rawBrandId = getNum('trendyolBrandId');
+  const rawCategoryId = getNum('trendyolCategoryId');
+  const trendyolBrandId = rawBrandId != null && rawBrandId > 0 ? Math.floor(rawBrandId) : undefined;
+  const trendyolCategoryId = rawCategoryId != null && rawCategoryId > 0 ? Math.floor(rawCategoryId) : undefined;
 
   const slug = `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${sku}`.slice(0, 180);
 
@@ -173,6 +178,8 @@ function itemToProductDataWithMapping(
     images: imageUrls,
     attributes: Object.keys(attributes).length > 0 ? attributes : undefined,
     categoryName,
+    trendyolBrandId,
+    trendyolCategoryId,
   };
 }
 
@@ -214,12 +221,21 @@ export async function processXmlFeed(
     errors: [],
   };
 
-  const response = await fetch(xmlUrl, {
-    headers: { Accept: 'application/xml, text/xml, */*' },
-    signal: AbortSignal.timeout(120_000),
-  });
+  let response: Response;
+  try {
+    response = await fetch(xmlUrl, {
+      headers: { Accept: 'application/xml, text/xml, */*' },
+      signal: AbortSignal.timeout(120_000),
+    });
+  } catch (fetchErr) {
+    const msg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
+    const cause = fetchErr instanceof Error && fetchErr.cause instanceof Error ? fetchErr.cause.message : '';
+    throw new Error(
+      `XML adresine ulaşılamadı: ${xmlUrl}. Hata: ${msg}${cause ? ` (${cause})` : ''}. URL'nin erişilebilir olduğundan ve sunucunun bu adresten indirme yapabildiğinden emin olun.`
+    );
+  }
   if (!response.ok) {
-    throw new Error(`XML indirilemedi: ${response.status} ${response.statusText}`);
+    throw new Error(`XML indirilemedi: ${response.status} ${response.statusText} - ${xmlUrl}`);
   }
   const xmlData = await response.text();
   const parsed = parser.parse(xmlData) as Record<string, unknown>;
@@ -236,6 +252,13 @@ export async function processXmlFeed(
         ? itemToProductDataWithMapping(items[i], storeId, i, fieldMapping, variantMapping)
         : itemToProductData(items[i], storeId, i);
       const rowWithAttrs = row as typeof row & { attributes?: Record<string, string> };
+      const rowWithCategory = row as typeof row & { categoryName?: string | null };
+      const trendyolIds = await resolveTrendyolIds(
+        storeId,
+        row.brand,
+        rowWithCategory.categoryName ?? null
+      );
+
       const updateData: Parameters<typeof prisma.product.upsert>[0]['update'] = {
         name: row.name,
         description: row.description,
@@ -246,6 +269,8 @@ export async function processXmlFeed(
         salePrice: row.salePrice,
         stockQuantity: row.stockQuantity,
         updatedAt: new Date(),
+        ...(trendyolIds.brandId != null ? { trendyolBrandId: trendyolIds.brandId } : {}),
+        ...(trendyolIds.categoryId != null ? { trendyolCategoryId: trendyolIds.categoryId } : {}),
       };
       if (rowWithAttrs.attributes && Object.keys(rowWithAttrs.attributes).length > 0) {
         updateData.attributes = rowWithAttrs.attributes;
@@ -262,6 +287,8 @@ export async function processXmlFeed(
         listPrice: row.listPrice,
         salePrice: row.salePrice,
         stockQuantity: row.stockQuantity,
+        ...(trendyolIds.brandId != null ? { trendyolBrandId: trendyolIds.brandId } : {}),
+        ...(trendyolIds.categoryId != null ? { trendyolCategoryId: trendyolIds.categoryId } : {}),
       };
       if (rowWithAttrs.attributes && Object.keys(rowWithAttrs.attributes).length > 0) {
         createData.attributes = rowWithAttrs.attributes;
@@ -290,9 +317,15 @@ export async function processXmlFeed(
         });
       }
 
-      const rowWithCategory = row as typeof row & { categoryName?: string | null };
       if (rowWithCategory.categoryName?.trim()) {
-        const categoryId = await resolveOrCreateCategory(storeId, rowWithCategory.categoryName.trim());
+        const externalId =
+          trendyolIds.categoryId != null ? String(trendyolIds.categoryId) : null;
+        const categoryId = await resolveOrCreateCategory(
+          storeId,
+          rowWithCategory.categoryName.trim(),
+          null,
+          externalId
+        );
         if (categoryId) {
           await setProductCategory(product.id, categoryId, true);
         }
@@ -366,12 +399,21 @@ export async function processXmlFeedToBatch(
     batchId,
   };
 
-  const response = await fetch(xmlUrl, {
-    headers: { Accept: 'application/xml, text/xml, */*' },
-    signal: AbortSignal.timeout(120_000),
-  });
+  let response: Response;
+  try {
+    response = await fetch(xmlUrl, {
+      headers: { Accept: 'application/xml, text/xml, */*' },
+      signal: AbortSignal.timeout(120_000),
+    });
+  } catch (fetchErr) {
+    const msg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
+    const cause = fetchErr instanceof Error && fetchErr.cause instanceof Error ? fetchErr.cause.message : '';
+    throw new Error(
+      `XML adresine ulaşılamadı: ${xmlUrl}. Hata: ${msg}${cause ? ` (${cause})` : ''}. URL'nin erişilebilir olduğundan ve sunucunun bu adresten indirme yapabildiğinden emin olun.`
+    );
+  }
   if (!response.ok) {
-    throw new Error(`XML indirilemedi: ${response.status} ${response.statusText}`);
+    throw new Error(`XML indirilemedi: ${response.status} ${response.statusText} - ${xmlUrl}`);
   }
   const xmlData = await response.text();
   const parsed = parser.parse(xmlData) as Record<string, unknown>;
@@ -394,7 +436,7 @@ export async function processXmlFeedToBatch(
         : itemToProductData(items[i], storeId, i);
       const rowWithAttrs = row as typeof row & { attributes?: Record<string, string> };
 
-      const rowWithCat = row as typeof row & { categoryName?: string | null };
+      const rowWithCat = row as typeof row & { categoryName?: string | null; trendyolBrandId?: number | null; trendyolCategoryId?: number | null };
       await prisma.xmlImportItem.create({
         data: {
           batchId,
@@ -410,6 +452,8 @@ export async function processXmlFeedToBatch(
           barcode: row.barcode,
           brand: row.brand,
           categoryName: rowWithCat.categoryName?.trim() || undefined,
+          trendyolBrandId: rowWithCat.trendyolBrandId ?? undefined,
+          trendyolCategoryId: rowWithCat.trendyolCategoryId ?? undefined,
           imageUrls: row.images?.length ? (row.images as unknown as object) : undefined,
           attributes: rowWithAttrs.attributes ?? undefined,
         },

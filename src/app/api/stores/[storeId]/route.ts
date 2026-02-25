@@ -95,3 +95,45 @@ export async function PATCH(
     return NextResponse.json({ error: 'Mağaza güncellenemedi' }, { status: 500 });
   }
 }
+
+/** DELETE - Mağazayı sil. FK sırası: Job.orderId null → OrderItem → Order → Store (cascade geri kalanı). */
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ storeId: string }> }
+) {
+  try {
+    const { storeId } = await params;
+    const store = await prisma.store.findUnique({
+      where: { id: storeId },
+      select: { id: true },
+    });
+    if (!store) {
+      return NextResponse.json({ error: 'Mağaza bulunamadı' }, { status: 404 });
+    }
+
+    const orderIds = await prisma.order.findMany({
+      where: { storeId },
+      select: { id: true },
+    }).then((rows) => rows.map((r) => r.id));
+
+    await prisma.$transaction([
+      prisma.job.updateMany({
+        where: { orderId: { in: orderIds } },
+        data: { orderId: null },
+      }),
+      prisma.orderItem.deleteMany({
+        where: { orderId: { in: orderIds } },
+      }),
+      prisma.order.deleteMany({
+        where: { storeId },
+      }),
+      prisma.store.delete({ where: { id: storeId } }),
+    ]);
+
+    return NextResponse.json({ ok: true, message: 'Mağaza silindi' });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error('Store delete error:', e);
+    return NextResponse.json({ error: msg || 'Mağaza silinemedi' }, { status: 500 });
+  }
+}

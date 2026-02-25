@@ -1,16 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { Folder, FolderOpen, Image as ImageIcon } from 'lucide-react';
+import { Folder, FolderOpen, Image as ImageIcon, Upload } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Breadcrumb,
   BreadcrumbList,
   BreadcrumbItem,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
-import type { ExplorerData } from './catalog-explorer-types';
+import type { ExplorerData, UploadDialogPayload } from './catalog-explorer-types';
 
 const PLATFORM_LABELS: Record<string, string> = {
   TRENDYOL: 'TY',
@@ -33,12 +34,14 @@ type Props = {
   buildUrl: (s?: string, c?: string) => string;
   storeId: string;
   categoryId: string;
+  onUploadToMarketplace?: (payload: UploadDialogPayload) => void;
 };
 
-export function CatalogExplorerContent({ data, buildUrl, storeId, categoryId }: Props) {
+export function CatalogExplorerContent({ data, buildUrl, storeId, categoryId, onUploadToMarketplace }: Props) {
   return (
     <div className="space-y-6">
-      <Breadcrumb>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
             {storeId ? (
@@ -76,6 +79,24 @@ export function CatalogExplorerContent({ data, buildUrl, storeId, categoryId }: 
           )}
         </BreadcrumbList>
       </Breadcrumb>
+        {onUploadToMarketplace && data.view === 'products' && data.store && data.category && (
+          <Button
+            variant="default"
+            size="sm"
+            className="shrink-0"
+            onClick={() =>
+              onUploadToMarketplace({
+                storeId: data.store.id,
+                categoryId: data.category.id,
+                categoryName: data.category.name,
+              })
+            }
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            Pazaryerine Gönder
+          </Button>
+        )}
+      </div>
 
       <div>
         {data.view === 'stores' ? (
@@ -103,8 +124,8 @@ export function CatalogExplorerContent({ data, buildUrl, storeId, categoryId }: 
         ) : data.view === 'categories' ? (
           <div key="categories" className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {data.storeProductCount > 0 && (
-              <Link key="all" href={buildUrl(data.store.id, 'all')}>
-                <div className="h-full">
+              <div key="all" className="relative h-full group">
+                <Link href={buildUrl(data.store.id, 'all')} className="block h-full">
                   <Card className="h-full cursor-pointer transition-shadow hover:shadow-md">
                     <CardContent className="flex flex-col items-center justify-center gap-2 p-6">
                       <FolderOpen className="h-12 w-12 text-blue-500/80" />
@@ -112,12 +133,31 @@ export function CatalogExplorerContent({ data, buildUrl, storeId, categoryId }: 
                       <Badge variant="secondary">{data.storeProductCount} ürün</Badge>
                     </CardContent>
                   </Card>
-                </div>
-              </Link>
+                </Link>
+                {onUploadToMarketplace && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onUploadToMarketplace({
+                        storeId: data.store.id,
+                        categoryId: 'all',
+                        categoryName: 'Tüm ürünler',
+                      });
+                    }}
+                  >
+                    <Upload className="h-3.5 w-3.5 mr-1" />
+                    Pazaryerine Gönder
+                  </Button>
+                )}
+              </div>
             )}
             {data.categories.map((cat) => (
-              <Link key={cat.id} href={buildUrl(data.store.id, cat.id)}>
-                <div className="h-full">
+              <div key={cat.id} className="relative h-full group">
+                <Link href={buildUrl(data.store.id, cat.id)} className="block h-full">
                   <Card
                     className={`h-full cursor-pointer transition-shadow hover:shadow-md ${
                       cat.productCount === 0 ? 'opacity-60' : ''
@@ -131,8 +171,27 @@ export function CatalogExplorerContent({ data, buildUrl, storeId, categoryId }: 
                       </Badge>
                     </CardContent>
                   </Card>
-                </div>
-              </Link>
+                </Link>
+                {onUploadToMarketplace && cat.productCount > 0 && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onUploadToMarketplace({
+                        storeId: data.store.id,
+                        categoryId: cat.id,
+                        categoryName: cat.name,
+                      });
+                    }}
+                  >
+                    <Upload className="h-3.5 w-3.5 mr-1" />
+                    Pazaryerine Gönder
+                  </Button>
+                )}
+              </div>
             ))}
             {data.categories.length === 0 && data.storeProductCount === 0 && (
               <p className="col-span-full py-12 text-center text-sm text-muted-foreground">

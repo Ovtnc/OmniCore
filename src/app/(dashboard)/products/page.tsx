@@ -11,10 +11,12 @@ import {
   ChevronLeft,
   ChevronRight,
   Image as ImageIcon,
-  Send,
   Loader2,
   FolderTree,
   List,
+  Plus,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,7 +28,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { CatalogExplorer } from '@/components/products/CatalogExplorer';
+import { ProductFormSheet } from '@/components/products/ProductFormSheet';
 
 type StoreOption = { id: string; name: string; slug: string };
 type Product = {
@@ -76,6 +87,13 @@ function ProductsPageContent() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [sending, setSending] = useState(false);
   const [sendMessage, setSendMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [productFormOpen, setProductFormOpen] = useState(false);
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   useEffect(() => {
     fetch('/api/stores')
@@ -103,7 +121,7 @@ function ProductsPageContent() {
       })
       .catch(() => setData({ products: [], total: 0, page: 1, limit: 20, totalPages: 0 }))
       .finally(() => setLoading(false));
-  }, [storeId, debouncedSearch, page]);
+  }, [storeId, debouncedSearch, page, refreshKey]);
 
   const toPrice = (v: number | string) => {
     const n = typeof v === 'number' ? v : parseFloat(String(v));
@@ -153,6 +171,53 @@ function ProductsPageContent() {
     }
   };
 
+  const handleDeleteProduct = async () => {
+    if (!productToDelete) return;
+    setDeletingId(productToDelete.id);
+    setSendMessage(null);
+    try {
+      const res = await fetch(`/api/products/${productToDelete.id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Ürün silinemedi');
+      setProductToDelete(null);
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(productToDelete.id);
+        return next;
+      });
+      setRefreshKey((k) => k + 1);
+      setSendMessage({ type: 'success', text: 'Ürün silindi.' });
+    } catch (e) {
+      setSendMessage({ type: 'error', text: e instanceof Error ? e.message : 'Ürün silinemedi' });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setBulkDeleting(true);
+    setSendMessage(null);
+    try {
+      const res = await fetch('/api/products/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productIds: ids }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Silme başarısız');
+      setBulkDeleteOpen(false);
+      setSelectedIds(new Set());
+      setRefreshKey((k) => k + 1);
+      setSendMessage({ type: 'success', text: data.message || `${data.deleted ?? 0} ürün silindi.` });
+    } catch (e) {
+      setSendMessage({ type: 'error', text: e instanceof Error ? e.message : 'Silme başarısız' });
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -184,7 +249,16 @@ function ProductsPageContent() {
               Kategoriler
             </Link>
           </Button>
-          <Button asChild>
+          <Button
+            onClick={() => {
+              setEditingProductId(null);
+              setProductFormOpen(true);
+            }}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Yeni ürün
+          </Button>
+          <Button variant="outline" asChild>
             <Link href="/xml-wizard">
               <FileCode2 className="mr-2 h-4 w-4" />
               XML Sihirbazı
@@ -257,6 +331,27 @@ function ProductsPageContent() {
             </Select>
           </div>
 
+          {selectedIds.size > 0 && !loading && products.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/30 px-3 py-2">
+              <span className="text-sm text-muted-foreground">
+                <strong className="text-foreground">{selectedIds.size}</strong> ürün seçili
+              </span>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setBulkDeleteOpen(true)}
+                disabled={bulkDeleting}
+              >
+                {bulkDeleting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="mr-2 h-4 w-4" />
+                )}
+                Seçilenleri sil
+              </Button>
+            </div>
+          )}
+
           {loading ? (
             <p className="py-12 text-center text-sm text-muted-foreground">Yükleniyor…</p>
           ) : products.length === 0 ? (
@@ -265,15 +360,26 @@ function ProductsPageContent() {
               <div>
                 <p className="font-medium">Henüz ürün yok</p>
                 <p className="text-sm text-muted-foreground">
-                  XML import ile toplu ürün ekleyin veya pazaryeri senkronundan ürünler gelsin.
+                  Yeni ürün ekleyin, XML import ile toplu yükleyin veya pazaryeri senkronundan ürünler gelsin.
                 </p>
               </div>
-              <Button asChild>
-                <Link href="/xml-wizard">
-                  <FileCode2 className="mr-2 h-4 w-4" />
-                  XML Sihirbazı&apos;na git
-                </Link>
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    setEditingProductId(null);
+                    setProductFormOpen(true);
+                  }}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Yeni ürün
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link href="/xml-wizard">
+                    <FileCode2 className="mr-2 h-4 w-4" />
+                    XML Sihirbazı
+                  </Link>
+                </Button>
+              </div>
             </div>
           ) : (
             <>
@@ -296,6 +402,7 @@ function ProductsPageContent() {
                       <th className="px-4 py-2 text-right font-medium">Satış fiyatı</th>
                       <th className="px-4 py-2 text-right font-medium">Stok</th>
                       <th className="px-4 py-2 text-left font-medium">Durum</th>
+                      <th className="px-4 py-2 w-24" aria-label="İşlem" />
                     </tr>
                   </thead>
                   <tbody>
@@ -361,6 +468,35 @@ function ProductsPageContent() {
                             {p.isActive ? 'Aktif' : 'Pasif'}
                           </span>
                         </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setEditingProductId(p.id);
+                                setProductFormOpen(true);
+                              }}
+                              aria-label="Düzenle"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setProductToDelete(p)}
+                              disabled={deletingId === p.id}
+                              aria-label="Sil"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              {deletingId === p.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -400,6 +536,77 @@ function ProductsPageContent() {
           </CardContent>
         </Card>
       )}
+
+      <ProductFormSheet
+        open={productFormOpen}
+        onOpenChange={setProductFormOpen}
+        productId={editingProductId}
+        defaultStoreId={storeId !== 'all' ? storeId : undefined}
+        stores={stores}
+        onSuccess={() => setRefreshKey((k) => k + 1)}
+      />
+
+      <Dialog open={!!productToDelete} onOpenChange={(open) => !open && setProductToDelete(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Ürünü sil</DialogTitle>
+            <DialogDescription>
+              {productToDelete && (
+                <>
+                  <strong>{productToDelete.name}</strong> ürününü silmek istediğinize emin misiniz? Bu işlem geri
+                  alınamaz.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setProductToDelete(null)} disabled={!!deletingId}>
+              İptal
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteProduct}
+              disabled={!productToDelete || !!deletingId}
+            >
+              {deletingId ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Siliniyor…
+                </>
+              ) : (
+                'Sil'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={bulkDeleteOpen} onOpenChange={(open) => !open && !bulkDeleting && setBulkDeleteOpen(false)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Seçilen ürünleri sil</DialogTitle>
+            <DialogDescription>
+              <strong>{selectedIds.size}</strong> ürünü silmek istediğinize emin misiniz? Bu işlem geri alınamaz.
+              Siparişte kullanılan ürünler silinmeyecektir.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkDeleteOpen(false)} disabled={bulkDeleting}>
+              İptal
+            </Button>
+            <Button variant="destructive" onClick={handleBulkDelete} disabled={bulkDeleting}>
+              {bulkDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Siliniyor…
+                </>
+              ) : (
+                'Seçilenleri sil'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

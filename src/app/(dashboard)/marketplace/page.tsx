@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select';
 import { ConnectionForm, type ConnectionFormValues } from '@/components/marketplace/ConnectionForm';
 import { cn } from '@/lib/utils';
+import { BrandChip } from '@/components/ui/brand-chip';
 
 const PLATFORMS = [
   { value: 'TRENDYOL', label: 'Trendyol' },
@@ -290,7 +291,10 @@ export default function MarketplaceConnectionsPage() {
                     >
                       <div className="flex items-center gap-3">
                         <span className="font-medium">
-                          {PLATFORMS.find((p) => p.value === c.platform)?.label ?? c.platform}
+                          <BrandChip
+                            code={c.platform}
+                            label={PLATFORMS.find((p) => p.value === c.platform)?.label ?? c.platform}
+                          />
                         </span>
                         {c.sellerId && (
                           <span className="text-xs text-muted-foreground">

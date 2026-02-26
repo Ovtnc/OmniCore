@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Zap, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Zap, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -42,6 +43,7 @@ export function Step3TagMapping() {
   const [validationWarnings, setValidationWarnings] = useState<Record<string, string>>({});
 
   const tagOptions = useMemo(() => [EMPTY_VALUE, ...xmlTags], [xmlTags]);
+  const mappedMainCount = PRODUCT_MAIN_FIELDS.filter((field) => !!fieldMapping[field.key]).length;
 
   const handleAutoMap = async () => {
     if (xmlTags.length === 0) return;
@@ -89,22 +91,25 @@ export function Step3TagMapping() {
     variantMapping.find((m) => m.attributeKey === attributeKey)?.xmlTag ?? '';
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Etiket Eşleştirme</CardTitle>
+    <Card className="border-primary/20 bg-gradient-to-b from-background via-background to-primary/5">
+      <CardHeader className="pt-8">
+        <CardTitle className="text-3xl font-semibold tracking-tight">Etiket Eşleştirme</CardTitle>
         <CardDescription>
           XML etiketlerini Product alanlarına eşleyin. &quot;Otomatik Eşleştir&quot; ile tüm etiketler algoritma ile eşleştirilir (%80+ güven).
         </CardDescription>
-        <div className="flex flex-wrap items-center gap-2 pt-2">
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-muted/15 p-3">
           <Button
             type="button"
             variant="outline"
-            size="sm"
+            className="h-10 px-4 text-base font-semibold"
             onClick={handleAutoMap}
             disabled={autoMappingLoading || xmlTags.length === 0}
           >
             {autoMappingLoading ? (
-              <span className="animate-pulse">Yükleniyor...</span>
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Öneriler hazırlanıyor...
+              </>
             ) : (
               <>
                 <Zap className="mr-2 h-4 w-4" />
@@ -112,8 +117,19 @@ export function Step3TagMapping() {
               </>
             )}
           </Button>
+          <Badge variant="secondary" className="h-10 px-4 text-base font-semibold">
+            XML etiket: {xmlTags.length}
+          </Badge>
+          <Badge variant="secondary" className="h-10 px-4 text-base font-semibold">
+            Ana alan eşleşme: {mappedMainCount}
+          </Badge>
+          {hasVariants && (
+            <Badge variant="secondary" className="h-10 px-4 text-base font-semibold">
+              Varyant alanı: {variantMapping.length}
+            </Badge>
+          )}
           {autoMappingError && (
-            <span className="text-sm text-destructive flex items-center gap-1">
+            <span className="text-sm text-destructive flex items-center gap-1 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2">
               <AlertTriangle className="h-4 w-4" />
               {autoMappingError}
             </span>
@@ -122,9 +138,17 @@ export function Step3TagMapping() {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="main">
-          <TabsList className="grid w-full grid-cols-2 max-w-md">
-            <TabsTrigger value="main">Ana alanlar</TabsTrigger>
-            <TabsTrigger value="variants">
+          <TabsList className="mx-auto grid h-14 w-full max-w-md grid-cols-2 rounded-xl bg-muted/30 p-1">
+            <TabsTrigger
+              value="main"
+              className="text-base data-[state=active]:border data-[state=active]:border-primary/40 data-[state=active]:bg-primary/20 data-[state=active]:text-foreground data-[state=active]:shadow-[0_0_0_1px_rgba(59,130,246,0.25)]"
+            >
+              Ana alanlar
+            </TabsTrigger>
+            <TabsTrigger
+              value="variants"
+              className="text-base data-[state=active]:border data-[state=active]:border-primary/40 data-[state=active]:bg-primary/20 data-[state=active]:text-foreground data-[state=active]:shadow-[0_0_0_1px_rgba(59,130,246,0.25)]"
+            >
               Varyantlar
               {hasVariants && (
                 <span className="ml-1 text-xs bg-primary/20 px-1 rounded">Açık</span>
@@ -133,6 +157,9 @@ export function Step3TagMapping() {
           </TabsList>
 
           <TabsContent value="main" className="space-y-4 pt-4">
+            <div className="rounded-lg border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+              Zorunlu alanları önce eşleyin: SKU, Ürün adı, Satış fiyatı, Stok.
+            </div>
             <div className="space-y-4">
               {PRODUCT_MAIN_FIELDS.map((field) => (
                 <div key={field.key} className="grid gap-2 sm:grid-cols-[180px_1fr_auto] items-start">
@@ -175,6 +202,9 @@ export function Step3TagMapping() {
           </TabsContent>
 
           <TabsContent value="variants" className="space-y-4 pt-4">
+            <div className="rounded-lg border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+              Varyant kullanıyorsanız renk/beden gibi alanları burada eşleyin.
+            </div>
             <div className="flex items-center gap-2">
               <input
                 type="checkbox"

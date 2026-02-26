@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { CheckCircle2, XCircle, Link2, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { BrandChip } from '@/components/ui/brand-chip';
 
 type HealthItem = {
   id: string;
@@ -81,7 +82,7 @@ export function PlatformHealth() {
                     )}
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate">
-                        {PLATFORM_LABEL[item.platform] ?? item.platform}
+                        <BrandChip code={item.platform} label={PLATFORM_LABEL[item.platform] ?? item.platform} />
                       </p>
                       <p className="text-xs text-muted-foreground truncate">
                         {item.storeName}

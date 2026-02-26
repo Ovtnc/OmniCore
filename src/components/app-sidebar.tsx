@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import {
   LayoutDashboard,
@@ -18,6 +18,7 @@ import {
   Wrench,
   FileCode2,
   Headphones,
+  Bell,
   Settings,
   ChevronRight,
   ChevronDown,
@@ -33,6 +34,14 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useSession } from 'next-auth/react';
 
@@ -79,6 +88,7 @@ const navMain = [
   { title: 'Lojistik', href: '/logistics', icon: Truck },
   { title: 'B2B', href: '/b2b', icon: Users },
   { title: 'Raporlar', href: '/reports', icon: BarChart3 },
+  { title: 'Bildirimler', href: '/notifications', icon: Bell },
   { title: 'Araçlar', href: '/tools', icon: Wrench },
   { title: 'XML Kurulum Sihirbazı', href: '/xml-wizard', icon: FileCode2 },
   { title: 'Destek', href: '/support', icon: Headphones },
@@ -92,9 +102,76 @@ const navQuick = [
   { title: 'Raporlar', href: '/reports', icon: BarChart3 },
 ];
 
+type SearchItem = {
+  title: string;
+  href: string;
+  section: string;
+};
+
 export function AppSidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [openPanels, setOpenPanels] = React.useState<string[]>(['Kontrol Paneli']);
+  const [searchOpen, setSearchOpen] = React.useState(false);
+  const [query, setQuery] = React.useState('');
+
+  const searchItems = React.useMemo(() => {
+    const byHref = new Map<string, SearchItem>();
+    for (const item of navMain) {
+      if ('items' in item) {
+        for (const sub of item.items ?? []) {
+          byHref.set(sub.href, {
+            title: sub.title,
+            href: sub.href,
+            section: item.title,
+          });
+        }
+      } else {
+        byHref.set(item.href, {
+          title: item.title,
+          href: item.href,
+          section: 'Menü',
+        });
+      }
+    }
+    for (const quick of navQuick) {
+      if (!byHref.has(quick.href)) {
+        byHref.set(quick.href, {
+          title: quick.title,
+          href: quick.href,
+          section: 'Hızlı Erişim',
+        });
+      }
+    }
+    return Array.from(byHref.values());
+  }, []);
+
+  const filteredItems = React.useMemo(() => {
+    const q = query.trim().toLocaleLowerCase('tr-TR');
+    if (!q) return searchItems;
+    return searchItems.filter((item) => {
+      const hay = `${item.title} ${item.section} ${item.href}`.toLocaleLowerCase('tr-TR');
+      return hay.includes(q);
+    });
+  }, [query, searchItems]);
+
+  const goTo = React.useCallback((href: string) => {
+    setSearchOpen(false);
+    setQuery('');
+    router.push(href);
+    onClose?.();
+  }, [router, onClose]);
+
+  React.useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const isShortcut = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k';
+      if (!isShortcut) return;
+      e.preventDefault();
+      setSearchOpen((prev) => !prev);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   const togglePanel = (title: string) => {
     setOpenPanels((prev) =>
@@ -104,7 +181,7 @@ export function AppSidebar({ onClose }: { onClose?: () => void }) {
 
   return (
     <aside
-      className="flex h-full flex-col border-r bg-card"
+      className="flex h-full min-h-0 max-h-screen flex-col overflow-hidden border-r bg-card lg:h-screen"
       style={{ width: SIDEBAR_WIDTH }}
     >
       {/* Logo + close (mobile) */}
@@ -126,19 +203,22 @@ export function AppSidebar({ onClose }: { onClose?: () => void }) {
       <div className="border-b p-3">
         <button
           type="button"
-          className="flex w-full items-center gap-2 rounded-md border bg-muted/50 px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted"
-          onClick={() => {}}
+          onClick={() => setSearchOpen(true)}
+          className="flex w-full items-center justify-between rounded-md border bg-muted/50 px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted"
+          aria-label="Global aramayı aç"
         >
-          <Search className="h-4 w-4 shrink-0" />
-          <span>Arama</span>
-          <kbd className="ml-auto hidden rounded bg-muted px-1.5 py-0.5 text-xs font-mono sm:inline-block">
+          <span className="flex items-center gap-2">
+            <Search className="h-4 w-4 shrink-0" />
+            Arama
+          </span>
+          <kbd className="hidden rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono sm:inline-block">
             CTRL + K
           </kbd>
         </button>
       </div>
 
       {/* Ana menü */}
-      <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
+      <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto p-3">
         {navMain.map((item) => {
           if ('items' in item) {
             const isOpen = openPanels.includes(item.title);
@@ -213,13 +293,56 @@ export function AppSidebar({ onClose }: { onClose?: () => void }) {
       </nav>
 
       {/* Kullanıcı + Çıkış */}
-      <div className="mt-auto border-t p-3 space-y-2">
+      <div className="border-t p-3 space-y-2">
         <UserBlock />
         <div className="flex items-center justify-between">
           <ThemeToggle />
           <span className="text-xs text-muted-foreground">v1.0.0</span>
         </div>
       </div>
+
+      <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
+        <DialogContent className="p-0 sm:max-w-xl">
+          <DialogHeader className="border-b px-4 py-3">
+            <DialogTitle className="text-base">Global Arama</DialogTitle>
+            <DialogDescription>Sayfa adı veya yol yazarak hızlıca geçiş yapın.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 p-4">
+            <Input
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && filteredItems.length > 0) {
+                  e.preventDefault();
+                  goTo(filteredItems[0].href);
+                }
+              }}
+              placeholder="Örn: sipariş, rapor, /products"
+            />
+            <div className="max-h-80 overflow-y-auto rounded-md border">
+              {filteredItems.length === 0 ? (
+                <p className="px-3 py-3 text-sm text-muted-foreground">Sonuç bulunamadı.</p>
+              ) : (
+                <ul className="divide-y">
+                  {filteredItems.map((item) => (
+                    <li key={item.href}>
+                      <button
+                        type="button"
+                        onClick={() => goTo(item.href)}
+                        className="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-accent"
+                      >
+                        <span className="text-sm">{item.title}</span>
+                        <span className="text-xs text-muted-foreground">{item.href}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </aside>
   );
 }

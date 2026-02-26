@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { BrandChip } from '@/components/ui/brand-chip';
 
 const CARGO_PROVIDERS: { value: string; label: string }[] = [
   { value: 'YURTICI', label: 'Yurtiçi Kargo' },
@@ -239,7 +240,7 @@ export default function LogisticsPage() {
                           <SelectContent>
                             {CARGO_PROVIDERS.map((p) => (
                               <SelectItem key={p.value} value={p.value}>
-                                {p.label}
+                                <BrandChip code={p.value} label={p.label} />
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -299,7 +300,10 @@ export default function LogisticsPage() {
                         >
                           <div>
                             <span className="font-medium">
-                              {CARGO_PROVIDERS.find((p) => p.value === s.provider)?.label ?? s.provider}
+                              <BrandChip
+                                code={s.provider}
+                                label={CARGO_PROVIDERS.find((p) => p.value === s.provider)?.label ?? s.provider}
+                              />
                             </span>
                             {s.defaultWeight != null && (
                               <span className="text-muted-foreground ml-2">

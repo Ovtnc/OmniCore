@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { BrandChip } from '@/components/ui/brand-chip';
 
 const ORDER_STATUS_LABEL: Record<string, string> = {
   PENDING: 'Beklemede',
@@ -157,16 +158,6 @@ export function OrderDetailsSheet({
 }) {
   if (!order) return null;
 
-  const handleEInvoice = () => {
-    // Stub: ileride e-fatura entegrasyonu
-    console.log('E-Fatura oluştur (stub)', order.id);
-  };
-
-  const handlePrintLabel = () => {
-    // Stub: ileride kargo etiketi yazdırma
-    console.log('Kargo etiketi yazdır (stub)', order.id);
-  };
-
   const StatusIcon = STATUS_ICON[order.status] ?? Clock;
 
   return (
@@ -188,7 +179,7 @@ export function OrderDetailsSheet({
                 variant="outline"
                 className={PLATFORM_COLOR[order.platform] ?? PLATFORM_COLOR.OTHER}
               >
-                {PLATFORM_LABELS[order.platform] ?? order.platform}
+                <BrandChip code={order.platform} label={PLATFORM_LABELS[order.platform] ?? order.platform} />
               </Badge>
             )}
             <Badge
@@ -324,19 +315,23 @@ export function OrderDetailsSheet({
 
           <div className="flex flex-row gap-2 pt-1">
             <Button
-              onClick={handleEInvoice}
+              type="button"
+              disabled
+              title="Bu özellik MVP dışında"
               className="h-10 flex-1 px-4 text-sm font-medium"
             >
               <FileText className="mr-2 h-3.5 w-3.5" />
-              E-Fatura Oluştur
+              E-Fatura (Yakında)
             </Button>
             <Button
+              type="button"
               variant="outline"
-              onClick={handlePrintLabel}
+              disabled
+              title="Bu özellik MVP dışında"
               className="h-10 shrink-0 border-border/50 px-4 text-sm font-medium hover:bg-secondary/50"
             >
               <Printer className="mr-2 h-3.5 w-3.5" />
-              Kargo Etiketi
+              Kargo Etiketi (Yakında)
             </Button>
           </div>
         </div>

@@ -1,10 +1,11 @@
 /**
- * POST - Seçilen ürünleri kalıcı Product tablosuna aktar, marketplace-sync kuyruğuna ekle.
+ * POST - Seçilen ürünleri kalıcı Product tablosuna aktar.
+ * Pazaryeri gönderimi bu adımda yapılmaz; kullanıcı Quick Sync'ten manuel başlatır.
  * Body: { batchId: string, productIds: string[] } (productIds = XmlImportItem id'leri)
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { ListingStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
-import { marketplaceSyncQueue } from '@/lib/queue';
 import { resolveOrCreateCategory, setProductCategory } from '@/lib/category-resolve';
 
 export async function POST(req: NextRequest) {
@@ -37,6 +38,10 @@ export async function POST(req: NextRequest) {
     }
 
     const storeId = batch.storeId;
+    const activeConnections = await prisma.marketplaceConnection.findMany({
+      where: { storeId, isActive: true },
+      select: { id: true },
+    });
     let created = 0;
     const imageUrlsArr = (urls: unknown): string[] =>
       Array.isArray(urls) ? urls.filter((u): u is string => typeof u === 'string') : [];
@@ -102,17 +107,32 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      await marketplaceSyncQueue.add(
-        `sync-${product.id}-${Date.now()}`,
-        {
-          storeId,
-          type: 'product',
-          productId: product.id,
-          platform: '',
-          payload: {},
-        },
-        { attempts: 3, backoff: { type: 'exponential', delay: 5000 } }
-      );
+      // Kullanıcı manuel göndereceği için ürünü Quick Sync adayına düşür.
+      for (const conn of activeConnections) {
+        await prisma.marketplaceListing.upsert({
+          where: { connectionId_productId: { connectionId: conn.id, productId: product.id } },
+          create: {
+            storeId,
+            connectionId: conn.id,
+            productId: product.id,
+            externalSku: product.sku ?? null,
+            listPrice: product.listPrice,
+            salePrice: product.salePrice,
+            stockQuantity: product.stockQuantity,
+            status: ListingStatus.PENDING,
+            lastSyncAt: null,
+            syncError: null,
+          },
+          update: {
+            externalSku: product.sku ?? null,
+            listPrice: product.listPrice,
+            salePrice: product.salePrice,
+            stockQuantity: product.stockQuantity,
+            status: ListingStatus.PENDING,
+            syncError: null,
+          },
+        });
+      }
       created++;
     }
 
@@ -129,7 +149,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       imported: created,
-      message: `${created} ürün sisteme aktarıldı ve pazaryeri kuyruğuna eklendi.`,
+      message: `${created} ürün sisteme aktarıldı. Pazaryerine göndermek için Hızlı Senkronizasyon'u kullanın.`,
     });
   } catch (e) {
     console.error('xml-import confirm error:', e);

@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { AuthSessionProvider } from '@/components/providers/session-provider';
+import { TopRouteLoader } from '@/components/navigation/TopRouteLoader';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -32,7 +33,10 @@ export default function RootLayout({
     <html lang="tr" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`} suppressHydrationWarning>
         <ThemeProvider defaultTheme="system" storageKey="omnicore-theme">
-          <AuthSessionProvider>{children}</AuthSessionProvider>
+          <AuthSessionProvider>
+            <TopRouteLoader />
+            {children}
+          </AuthSessionProvider>
         </ThemeProvider>
       </body>
     </html>

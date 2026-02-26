@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { getPlatformFields } from '@/services/marketplaces/platform-fields';
+import { BrandChip } from '@/components/ui/brand-chip';
 
 export interface ConnectionFormValues {
   platform: string;
@@ -89,7 +90,7 @@ export function ConnectionForm({ value, onChange, disabled }: Props) {
           <SelectContent>
             {PLATFORM_OPTIONS.map((p) => (
               <SelectItem key={p.value} value={p.value}>
-                {p.label}
+                <BrandChip code={p.value} label={p.label} />
               </SelectItem>
             ))}
           </SelectContent>

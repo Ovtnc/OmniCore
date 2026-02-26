@@ -12,6 +12,10 @@ export class StubMarketplaceAdapter extends MarketplaceAdapter {
     super();
   }
 
+  supportsLiveConnectionTest(): boolean {
+    return false;
+  }
+
   async sendProduct(_product: MarketplaceProduct, connection: MarketplaceConnection): Promise<unknown> {
     if (!connection.apiKey) {
       throw new Error(`${this.platform}: apiKey gerekli`);

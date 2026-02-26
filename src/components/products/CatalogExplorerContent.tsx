@@ -1,10 +1,13 @@
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Folder, FolderOpen, Image as ImageIcon, Upload } from 'lucide-react';
+import { Folder, FolderOpen, Image as ImageIcon, Search, Upload } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { BrandChip } from '@/components/ui/brand-chip';
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -13,20 +16,17 @@ import {
 } from '@/components/ui/breadcrumb';
 import type { ExplorerData, UploadDialogPayload } from './catalog-explorer-types';
 
-const PLATFORM_LABELS: Record<string, string> = {
-  TRENDYOL: 'TY',
-  HEPSIBURADA: 'HB',
-  AMAZON: 'AMZ',
-  N11: 'N11',
-  SHOPIFY: 'SH',
-  CICEKSEPETI: 'ÇS',
-  OTHER: '?',
-};
-
 function toPrice(v: number) {
   return Number.isFinite(v)
     ? new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(v)
     : '–';
+}
+
+function readableCategoryName(value: string) {
+  return value
+    .replace(/\s*>>>\s*/g, ' | ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
 }
 
 type Props = {
@@ -38,6 +38,50 @@ type Props = {
 };
 
 export function CatalogExplorerContent({ data, buildUrl, storeId, categoryId, onUploadToMarketplace }: Props) {
+  const [query, setQuery] = useState('');
+
+  useEffect(() => {
+    setQuery('');
+  }, [data.view, storeId, categoryId]);
+
+  const filteredStores = useMemo(() => {
+    if (data.view !== 'stores') return [];
+    const q = query.trim().toLocaleLowerCase('tr-TR');
+    if (!q) return data.stores;
+    return data.stores.filter((store) => store.name.toLocaleLowerCase('tr-TR').includes(q));
+  }, [data, query]);
+
+  const filteredCategories = useMemo(() => {
+    if (data.view !== 'categories') return [];
+    const q = query.trim().toLocaleLowerCase('tr-TR');
+    if (!q) return data.categories;
+    return data.categories.filter((cat) =>
+      readableCategoryName(cat.name).toLocaleLowerCase('tr-TR').includes(q)
+    );
+  }, [data, query]);
+
+  const filteredProducts = useMemo(() => {
+    if (data.view !== 'products') return [];
+    const q = query.trim().toLocaleLowerCase('tr-TR');
+    if (!q) return data.products;
+    return data.products.filter((product) =>
+      [product.name, product.sku, product.brand ?? '']
+        .join(' ')
+        .toLocaleLowerCase('tr-TR')
+        .includes(q)
+    );
+  }, [data, query]);
+
+  const hasSearch = data.view === 'stores' || data.view === 'categories' || data.view === 'products';
+  const resultCount =
+    data.view === 'stores'
+      ? filteredStores.length
+      : data.view === 'categories'
+        ? filteredCategories.length + (data.storeProductCount > 0 ? 1 : 0)
+        : data.view === 'products'
+          ? filteredProducts.length
+          : 0;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -73,7 +117,9 @@ export function CatalogExplorerContent({ data, buildUrl, storeId, categoryId, on
             <>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <span className="font-medium text-foreground">{data.category.name}</span>
+                <span className="font-medium text-foreground">
+                  {readableCategoryName(data.category.name)}
+                </span>
               </BreadcrumbItem>
             </>
           )}
@@ -98,15 +144,40 @@ export function CatalogExplorerContent({ data, buildUrl, storeId, categoryId, on
         )}
       </div>
 
+      {hasSearch && (
+        <div className="rounded-lg border bg-muted/20 p-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative w-full sm:max-w-sm">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={
+                  data.view === 'stores'
+                    ? 'Mağaza ara...'
+                    : data.view === 'categories'
+                      ? 'Kategori ara...'
+                      : 'Ürün adı, SKU veya marka ara...'
+                }
+                className="pl-9"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {query.trim() ? `Filtre sonucu: ${resultCount}` : `Toplam: ${resultCount}`}
+            </p>
+          </div>
+        </div>
+      )}
+
       <div>
         {data.view === 'stores' ? (
           <div key="stores" className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {data.stores.length === 0 ? (
+            {filteredStores.length === 0 ? (
               <p className="col-span-full py-12 text-center text-sm text-muted-foreground">
-                Henüz mağaza yok.
+                {query.trim() ? 'Aramaya uygun mağaza bulunamadı.' : 'Henüz mağaza yok.'}
               </p>
             ) : (
-              data.stores.map((store) => (
+              filteredStores.map((store) => (
                 <Link key={store.id} href={buildUrl(store.id)}>
                   <div className="h-full">
                     <Card className="h-full cursor-pointer transition-shadow hover:shadow-md">
@@ -124,13 +195,18 @@ export function CatalogExplorerContent({ data, buildUrl, storeId, categoryId, on
         ) : data.view === 'categories' ? (
           <div key="categories" className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {data.storeProductCount > 0 && (
-              <div key="all" className="relative h-full group">
+              <div key="all" className="flex flex-col gap-2">
                 <Link href={buildUrl(data.store.id, 'all')} className="block h-full">
                   <Card className="h-full cursor-pointer transition-shadow hover:shadow-md">
-                    <CardContent className="flex flex-col items-center justify-center gap-2 p-6">
+                    <CardContent className="flex h-full flex-col gap-3 p-5">
                       <FolderOpen className="h-12 w-12 text-blue-500/80" />
-                      <span className="text-center font-medium">Tüm ürünler</span>
-                      <Badge variant="secondary">{data.storeProductCount} ürün</Badge>
+                      <span className="line-clamp-2 min-h-12 text-base font-medium leading-6">
+                        Tüm ürünler
+                      </span>
+                      <div className="mt-auto flex items-center justify-between gap-2">
+                        <Badge variant="secondary">{data.storeProductCount} ürün</Badge>
+                        <span className="text-xs text-muted-foreground">Klasörü aç</span>
+                      </div>
                     </CardContent>
                   </Card>
                 </Link>
@@ -138,10 +214,8 @@ export function CatalogExplorerContent({ data, buildUrl, storeId, categoryId, on
                   <Button
                     variant="secondary"
                     size="sm"
-                    className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
+                    className="mt-2 w-full"
+                    onClick={() => {
                       onUploadToMarketplace({
                         storeId: data.store.id,
                         categoryId: 'all',
@@ -155,20 +229,25 @@ export function CatalogExplorerContent({ data, buildUrl, storeId, categoryId, on
                 )}
               </div>
             )}
-            {data.categories.map((cat) => (
-              <div key={cat.id} className="relative h-full group">
+            {filteredCategories.map((cat) => (
+              <div key={cat.id} className="flex flex-col gap-2">
                 <Link href={buildUrl(data.store.id, cat.id)} className="block h-full">
                   <Card
                     className={`h-full cursor-pointer transition-shadow hover:shadow-md ${
                       cat.productCount === 0 ? 'opacity-60' : ''
                     }`}
                   >
-                    <CardContent className="flex flex-col items-center justify-center gap-2 p-6">
+                    <CardContent className="flex h-full flex-col gap-3 p-5">
                       <FolderOpen className="h-12 w-12 text-amber-500/80" />
-                      <span className="text-center font-medium">{cat.name}</span>
-                      <Badge variant={cat.productCount === 0 ? 'outline' : 'secondary'}>
-                        {cat.productCount === 0 ? 'Boş' : `${cat.productCount} ürün`}
-                      </Badge>
+                      <span className="line-clamp-3 min-h-16 text-base font-medium leading-6">
+                        {readableCategoryName(cat.name)}
+                      </span>
+                      <div className="mt-auto flex items-center justify-between gap-2">
+                        <Badge variant={cat.productCount === 0 ? 'outline' : 'secondary'}>
+                          {cat.productCount === 0 ? 'Boş' : `${cat.productCount} ürün`}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">Klasörü aç</span>
+                      </div>
                     </CardContent>
                   </Card>
                 </Link>
@@ -176,10 +255,8 @@ export function CatalogExplorerContent({ data, buildUrl, storeId, categoryId, on
                   <Button
                     variant="secondary"
                     size="sm"
-                    className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
+                    className="mt-2 w-full"
+                    onClick={() => {
                       onUploadToMarketplace({
                         storeId: data.store.id,
                         categoryId: cat.id,
@@ -193,20 +270,22 @@ export function CatalogExplorerContent({ data, buildUrl, storeId, categoryId, on
                 )}
               </div>
             ))}
-            {data.categories.length === 0 && data.storeProductCount === 0 && (
+            {filteredCategories.length === 0 && data.storeProductCount === 0 && (
               <p className="col-span-full py-12 text-center text-sm text-muted-foreground">
-                Bu mağazada henüz kategori veya ürün yok. XML Sihirbazı veya liste görünümü ile ürün ekleyebilirsiniz.
+                {query.trim()
+                  ? 'Aramaya uygun kategori bulunamadı.'
+                  : 'Bu mağazada henüz kategori veya ürün yok. XML Sihirbazı veya liste görünümü ile ürün ekleyebilirsiniz.'}
               </p>
             )}
           </div>
         ) : data.view === 'products' ? (
           <div key="products" className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {data.products.length === 0 ? (
+            {filteredProducts.length === 0 ? (
               <p className="col-span-full py-12 text-center text-sm text-muted-foreground">
-                Bu kategoride ürün yok.
+                {query.trim() ? 'Aramaya uygun ürün bulunamadı.' : 'Bu kategoride ürün yok.'}
               </p>
             ) : (
-              data.products.map((product) => (
+              filteredProducts.map((product) => (
                 <div key={product.id}>
                   <Card className="h-full overflow-hidden transition-shadow hover:shadow-md">
                     <CardContent className="p-0">
@@ -229,8 +308,9 @@ export function CatalogExplorerContent({ data, buildUrl, storeId, categoryId, on
                                 key={p}
                                 variant="secondary"
                                 className="text-[10px] px-1.5 py-0"
+                                title={p}
                               >
-                                {PLATFORM_LABELS[p] ?? p}
+                                <BrandChip code={p} showLabel={false} logoClassName="h-3.5 w-3.5" />
                               </Badge>
                             ))}
                           </div>

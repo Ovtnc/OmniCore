@@ -14,7 +14,7 @@ import {
 } from './queues';
 import type { JobDataMap } from './queues';
 import { prisma } from '@/lib/prisma';
-import { JobStatus, Prisma } from '@prisma/client';
+import { JobStatus, ListingStatus, Prisma } from '@prisma/client';
 import { getAccountingIntegration } from '@/lib/integrations/IntegrationManager';
 import type { AccountingProvider } from '@prisma/client';
 import type { IntegrationCredentials } from '@/lib/integrations/types';
@@ -225,6 +225,21 @@ async function processMarketplaceSync(job: Job<JobDataMap['marketplace-sync']>) 
       const decrypted = await getConnectionWithDecryptedCredentials(conn.id);
       if (!decrypted?.apiKey || !decrypted?.apiSecret) {
         await job.log(`${conn.platform}: API anahtarı/secret eksik, atlanıyor`);
+        await prisma.marketplaceListing.upsert({
+          where: { connectionId_productId: { connectionId: conn.id, productId } },
+          create: {
+            storeId,
+            connectionId: conn.id,
+            productId,
+            status: ListingStatus.SYNC_ERROR,
+            syncError: 'API anahtarı/secret eksik',
+          },
+          update: {
+            status: ListingStatus.SYNC_ERROR,
+            syncError: 'API anahtarı/secret eksik',
+            lastSyncAt: new Date(),
+          },
+        });
         console.warn('[marketplace-sync] Credential eksik', {
           connectionId: conn.id,
           platform: conn.platform,
@@ -245,11 +260,61 @@ async function processMarketplaceSync(job: Job<JobDataMap['marketplace-sync']>) 
         SEND_PRODUCT_TIMEOUT_MS,
         'sendProduct'
       );
+      await prisma.marketplaceListing.upsert({
+        where: { connectionId_productId: { connectionId: conn.id, productId } },
+        create: {
+          storeId,
+          connectionId: conn.id,
+          productId,
+          externalSku: product.sku ?? null,
+          listPrice: product.listPrice,
+          salePrice: product.salePrice,
+          stockQuantity: product.stockQuantity,
+          status: ListingStatus.ACTIVE,
+          lastSyncAt: new Date(),
+          syncError: null,
+        },
+        update: {
+          externalSku: product.sku ?? null,
+          listPrice: product.listPrice,
+          salePrice: product.salePrice,
+          stockQuantity: product.stockQuantity,
+          status: ListingStatus.ACTIVE,
+          lastSyncAt: new Date(),
+          syncError: null,
+        },
+      });
       sent++;
       await job.log(`${product.sku} → ${conn.platform} gönderildi`);
       console.log('[marketplace-sync] Başarılı', { platform: conn.platform, sku: product.sku });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
+      await prisma.marketplaceListing
+        .upsert({
+          where: { connectionId_productId: { connectionId: conn.id, productId } },
+          create: {
+            storeId,
+            connectionId: conn.id,
+            productId,
+            externalSku: product.sku ?? null,
+            listPrice: product.listPrice,
+            salePrice: product.salePrice,
+            stockQuantity: product.stockQuantity,
+            status: ListingStatus.SYNC_ERROR,
+            lastSyncAt: new Date(),
+            syncError: msg,
+          },
+          update: {
+            externalSku: product.sku ?? null,
+            listPrice: product.listPrice,
+            salePrice: product.salePrice,
+            stockQuantity: product.stockQuantity,
+            status: ListingStatus.SYNC_ERROR,
+            lastSyncAt: new Date(),
+            syncError: msg,
+          },
+        })
+        .catch(() => {});
       await job.log(`${conn.platform} hata: ${msg}`);
       console.error('[marketplace-sync] Hata', {
         connectionId: conn.id,

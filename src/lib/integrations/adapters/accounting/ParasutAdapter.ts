@@ -72,6 +72,13 @@ export class ParasutAdapter extends AccountingIntegrationBase {
   }
 
   async healthCheck(): Promise<boolean> {
-    return true;
+    const hasClientPair = !!(this.credentials.clientId && this.credentials.clientSecret);
+    const hasApiPair = !!(this.credentials.apiKey && this.credentials.apiSecret);
+    if (!hasClientPair && !hasApiPair) {
+      throw new Error(
+        'Paraşüt bağlantı testi için clientId+clientSecret veya apiKey+apiSecret gerekli'
+      );
+    }
+    throw new Error('Paraşüt canlı bağlantı testi henüz desteklenmiyor');
   }
 }

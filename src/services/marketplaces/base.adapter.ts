@@ -32,6 +32,14 @@ export interface MarketplaceProduct {
 export abstract class MarketplaceAdapter {
   abstract platform: string;
 
+  /**
+   * Canlı bağlantı testi destekleniyor mu?
+   * Varsayılan: destekleniyor. Stub/iskelet adapterlar override etmelidir.
+   */
+  supportsLiveConnectionTest(): boolean {
+    return true;
+  }
+
   /** Bağlantıyı test et; başarılı ise { ok: true }, değilse { ok: false, message } */
   async testConnection(connection: MarketplaceConnection): Promise<{ ok: boolean; message?: string }> {
     try {

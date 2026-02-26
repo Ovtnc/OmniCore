@@ -200,6 +200,26 @@ function XmlWizardPreviewContent() {
           {fetchError}
         </div>
       )}
+
+      {importResult && (
+        <div
+          className={
+            importResult.success
+              ? 'flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-4 text-green-800 dark:border-green-800 dark:bg-green-950/30 dark:text-green-200'
+              : 'flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive'
+          }
+        >
+          {importResult.success ? (
+            <CheckCircle2 className="h-5 w-5 shrink-0" />
+          ) : null}
+          <p className="text-sm font-medium">{importResult.message}</p>
+          {importResult.success && (
+            <Button asChild variant="outline" size="sm" className="ml-auto">
+              <Link href="/products">Ürünlere git</Link>
+            </Button>
+          )}
+        </div>
+      )}
       <ProductPreviewTable
         items={items}
         total={total}
@@ -218,8 +238,8 @@ function XmlWizardPreviewContent() {
       />
 
       {/* Sticky bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="container flex items-center justify-between gap-4 py-4">
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:left-[280px]">
+        <div className="flex items-center justify-between gap-4 px-4 py-4 md:px-6">
           <p className="text-sm text-muted-foreground">
             <span className="font-medium text-foreground">{selectedIds.size}</span> ürün seçili
           </p>
@@ -245,7 +265,8 @@ function XmlWizardPreviewContent() {
             <DialogTitle>Aktarımı onayla</DialogTitle>
             <DialogDescription>
               Şu an <strong>{selectedIds.size} ürün</strong> seçili. Bu ürünler kalıcı kataloğa eklenecek ve
-              pazaryeri kuyruğuna gönderilecek. Seçmediğiniz ürünler atılacaktır. Devam etmek istiyor musunuz?
+              Hızlı Senkronizasyon listesine düşecektir. Pazaryerine gönderim manuel olarak sizden başlatılır.
+              Seçmediğiniz ürünler atılacaktır. Devam etmek istiyor musunuz?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -259,25 +280,6 @@ function XmlWizardPreviewContent() {
         </DialogContent>
       </Dialog>
 
-      {importResult && (
-        <div
-          className={
-            importResult.success
-              ? 'flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-4 text-green-800 dark:border-green-800 dark:bg-green-950/30 dark:text-green-200'
-              : 'flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive'
-          }
-        >
-          {importResult.success ? (
-            <CheckCircle2 className="h-5 w-5 shrink-0" />
-          ) : null}
-          <p className="text-sm font-medium">{importResult.message}</p>
-          {importResult.success && (
-            <Button asChild variant="outline" size="sm" className="ml-auto">
-              <Link href="/products">Ürünlere git</Link>
-            </Button>
-          )}
-        </div>
-      )}
     </div>
   );
 }

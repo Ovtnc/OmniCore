@@ -8,7 +8,7 @@
   },
   "description": "Enterprise e-commerce ecosystem: B2C, B2B, Marketplace, Accounting, AI",
   "scripts": {
-    "preinstall": "node -e \"const p = process.env.npm_execpath || ''; if (p.includes('npm') && !p.includes('pnpm')) { console.error('\\nBu proje pnpm kullanir. npm install yerine: pnpm install\\n'); process.exit(1); }\"",
+    "preinstall": "node -e \"const p = process.env.npm_execpath || ''; if (p.includes('npm') && !p.includes('pnpm')) { console.warn('\\nUyari: Proje pnpm ile gelistirildi, npm ile devam ediliyor.\\n'); }\"",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -21,9 +21,11 @@
     "queue:dev": "tsx src/lib/queue/run-workers.ts",
     "queue": "tsx src/lib/queue/run-workers.ts",
     "queue:remove": "tsx scripts/remove-queue-jobs.ts",
+    "assets:logos": "tsx scripts/download-brand-logos.ts",
     "docker:redis": "docker run -d --name omnicore-redis -p 6379:6379 redis",
     "test:xml-import": "tsx scripts/test-xml-import.ts",
-    "db:seed-orders": "tsx scripts/seed-orders.ts"
+    "db:seed-orders": "tsx scripts/seed-orders.ts",
+    "smoke:api": "tsx scripts/smoke-api.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",

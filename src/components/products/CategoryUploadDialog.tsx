@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { BrandChip } from '@/components/ui/brand-chip';
 
 type Connection = { id: string; platform: string; label: string; isActive?: boolean };
 
@@ -170,7 +171,9 @@ export function CategoryUploadDialog({
                         checked={selectedConnectionIds.has(c.id)}
                         onCheckedChange={() => handleToggleConnection(c.id)}
                       />
-                      <span className="text-sm font-medium">{c.label}</span>
+                      <span className="text-sm font-medium">
+                        <BrandChip code={c.platform} label={c.label} />
+                      </span>
                       {c.isActive === false && (
                         <span className="text-xs text-muted-foreground">(Aktif değil)</span>
                       )}

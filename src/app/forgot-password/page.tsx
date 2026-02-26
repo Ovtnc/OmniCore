@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { LayoutDashboard } from 'lucide-react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { ForgotPasswordForm } from '@/components/auth/ForgotPasswordForm';
 
 export const metadata = {
   title: 'Şifremi Unuttum | OmniCore',
@@ -20,19 +19,7 @@ export default function ForgotPasswordPage() {
         </div>
         OmniCore
       </Link>
-      <Card className="w-full max-w-md border-border bg-card shadow-xl">
-        <CardHeader>
-          <h1 className="text-xl font-semibold">Şifremi unuttum</h1>
-          <p className="text-sm text-muted-foreground">
-            Şifre sıfırlama özelliği yakında eklenecektir. Destek ile iletişime geçebilirsiniz.
-          </p>
-        </CardHeader>
-        <CardContent>
-          <Button asChild variant="outline" className="w-full">
-            <Link href="/login">Giriş sayfasına dön</Link>
-          </Button>
-        </CardContent>
-      </Card>
+      <ForgotPasswordForm />
     </div>
   );
 }

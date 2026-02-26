@@ -9,6 +9,10 @@ import type { MarketplaceConnection, MarketplaceProduct } from './base.adapter';
 export class HepsiburadaAdapter extends MarketplaceAdapter {
   platform = 'HEPSIBURADA';
 
+  supportsLiveConnectionTest(): boolean {
+    return false;
+  }
+
   async sendProduct(_product: MarketplaceProduct, connection: MarketplaceConnection): Promise<unknown> {
     if (!connection.apiKey || !connection.apiSecret) {
       throw new Error('Hepsiburada: apiKey ve apiSecret gerekli');

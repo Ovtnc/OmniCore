@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { BrandChip } from '@/components/ui/brand-chip';
 
 const PROVIDERS: { value: string; label: string }[] = [
   { value: 'LOGO', label: 'Logo' },
@@ -262,7 +263,7 @@ export default function AccountingPage() {
                           <SelectContent>
                             {PROVIDERS.map((p) => (
                               <SelectItem key={p.value} value={p.value}>
-                                {p.label}
+                                <BrandChip code={p.value} label={p.label} />
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -313,7 +314,10 @@ export default function AccountingPage() {
                           <div className="min-w-0">
                             <span className="font-medium">{i.name}</span>
                             <span className="text-muted-foreground ml-2">
-                              ({PROVIDERS.find((p) => p.value === i.provider)?.label ?? i.provider})
+                              (<BrandChip
+                                code={i.provider}
+                                label={PROVIDERS.find((p) => p.value === i.provider)?.label ?? i.provider}
+                              />)
                             </span>
                             {i.lastSyncAt && (
                               <p className="text-xs text-muted-foreground mt-1">

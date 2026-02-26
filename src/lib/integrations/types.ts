@@ -13,6 +13,9 @@ export interface IntegrationCredentials {
   username?: string;
   password?: string;
   supplierId?: string;
+  companyId?: string;
+  clientId?: string;
+  clientSecret?: string;
   [key: string]: string | undefined;
 }
 

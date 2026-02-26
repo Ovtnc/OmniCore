@@ -75,7 +75,13 @@ export class LogoAdapter extends AccountingIntegrationBase {
   }
 
   async healthCheck(): Promise<boolean> {
-    // TODO: Logo API bağlantı testi
-    return true;
+    const hasApiPair = !!(this.credentials.apiKey && this.credentials.apiSecret);
+    const hasUserPair = !!(this.credentials.username && this.credentials.password);
+    if (!hasApiPair && !hasUserPair) {
+      throw new Error(
+        'Logo bağlantı testi için apiKey+apiSecret veya username+password gerekli'
+      );
+    }
+    throw new Error('Logo canlı bağlantı testi henüz desteklenmiyor');
   }
 }

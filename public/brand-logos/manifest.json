@@ -1,0 +1,361 @@
+{
+  "generatedAt": "2026-02-25T22:21:08.632Z",
+  "total": 39,
+  "items": [
+    {
+      "code": "TRENDYOL",
+      "label": "Trendyol",
+      "enumName": "MarketplacePlatform",
+      "status": "ok",
+      "domain": "trendyol.com",
+      "file": "/brand-logos/TRENDYOL.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=trendyol.com"
+    },
+    {
+      "code": "HEPSIBURADA",
+      "label": "Hepsiburada",
+      "enumName": "MarketplacePlatform",
+      "status": "ok",
+      "domain": "hepsiburada.com",
+      "file": "/brand-logos/HEPSIBURADA.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=hepsiburada.com"
+    },
+    {
+      "code": "AMAZON",
+      "label": "Amazon",
+      "enumName": "MarketplacePlatform",
+      "status": "ok",
+      "domain": "amazon.com",
+      "file": "/brand-logos/AMAZON.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=amazon.com"
+    },
+    {
+      "code": "N11",
+      "label": "N11",
+      "enumName": "MarketplacePlatform",
+      "status": "ok",
+      "domain": "n11.com",
+      "file": "/brand-logos/N11.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=n11.com"
+    },
+    {
+      "code": "SHOPIFY",
+      "label": "Shopify",
+      "enumName": "MarketplacePlatform",
+      "status": "ok",
+      "domain": "shopify.com",
+      "file": "/brand-logos/SHOPIFY.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=shopify.com"
+    },
+    {
+      "code": "WOOCOMMERCE",
+      "label": "WooCommerce",
+      "enumName": "MarketplacePlatform",
+      "status": "ok",
+      "domain": "woocommerce.com",
+      "file": "/brand-logos/WOOCOMMERCE.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=woocommerce.com"
+    },
+    {
+      "code": "MAGENTO",
+      "label": "Magento",
+      "enumName": "MarketplacePlatform",
+      "status": "placeholder",
+      "domain": "magento.com",
+      "file": "/brand-logos/MAGENTO.png",
+      "source": "fallback:https://www.google.com/s2/favicons?sz=256&domain=wikipedia.org",
+      "reason": "fetch https://logo.clearbit.com/magento.com?size=256&format=png -> fetch failed | curl https://logo.clearbit.com/magento.com?size=256&format=png -> Command failed: curl -fsSL --max-time 20 -A Mozilla/5.0 OmniCoreLogoFetcher/1.0 https://logo.clearbit.com/magento.com?size=256&format=png\ncurl: (6) Could not resolve host: logo.clearbit.com\n | fetch https://www.google.com/s2/favicons?sz=256&domain=magento.com -> HTTP 404 Not Found | curl https://www.google.com/s2/favicons?sz=256&domain=magento.com -> Command failed: curl -fsSL --max-time 20 -A Mozilla/5.0 OmniCoreLogoFetcher/1.0 https://www.google.com/s2/favicons?sz=256&domain=magento.com\ncurl: (56) The requested URL returned error: 404\n | fetch https://logo.clearbit.com/magento.com -> fetch failed | curl https://logo.clearbit.com/magento.com -> Command failed: curl -fsSL --max-time 20 -A Mozilla/5.0 OmniCoreLogoFetcher/1.0 https://logo.clearbit.com/magento.com\ncurl: (6) Could not resolve host: logo.clearbit.com\n"
+    },
+    {
+      "code": "CIMRI",
+      "label": "Cimri",
+      "enumName": "MarketplacePlatform",
+      "status": "ok",
+      "domain": "cimri.com",
+      "file": "/brand-logos/CIMRI.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=cimri.com"
+    },
+    {
+      "code": "AKAKCE",
+      "label": "Akakce",
+      "enumName": "MarketplacePlatform",
+      "status": "ok",
+      "domain": "akakce.com",
+      "file": "/brand-logos/AKAKCE.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=akakce.com"
+    },
+    {
+      "code": "GOOGLE_MERCHANT",
+      "label": "Google Merchant",
+      "enumName": "MarketplacePlatform",
+      "status": "ok",
+      "domain": "google.com",
+      "file": "/brand-logos/GOOGLE_MERCHANT.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=google.com"
+    },
+    {
+      "code": "META_CATALOG",
+      "label": "Meta",
+      "enumName": "MarketplacePlatform",
+      "status": "ok",
+      "domain": "meta.com",
+      "file": "/brand-logos/META_CATALOG.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=meta.com"
+    },
+    {
+      "code": "GITTIGIDIYOR",
+      "label": "GittiGidiyor",
+      "enumName": "MarketplacePlatform",
+      "status": "placeholder",
+      "domain": "gittigidiyor.com",
+      "file": "/brand-logos/GITTIGIDIYOR.png",
+      "source": "fallback:https://www.google.com/s2/favicons?sz=256&domain=wikipedia.org",
+      "reason": "fetch https://logo.clearbit.com/gittigidiyor.com?size=256&format=png -> fetch failed | curl https://logo.clearbit.com/gittigidiyor.com?size=256&format=png -> Command failed: curl -fsSL --max-time 20 -A Mozilla/5.0 OmniCoreLogoFetcher/1.0 https://logo.clearbit.com/gittigidiyor.com?size=256&format=png\ncurl: (6) Could not resolve host: logo.clearbit.com\n | fetch https://www.google.com/s2/favicons?sz=256&domain=gittigidiyor.com -> HTTP 404 Not Found | curl https://www.google.com/s2/favicons?sz=256&domain=gittigidiyor.com -> Command failed: curl -fsSL --max-time 20 -A Mozilla/5.0 OmniCoreLogoFetcher/1.0 https://www.google.com/s2/favicons?sz=256&domain=gittigidiyor.com\ncurl: (56) The requested URL returned error: 404\n | fetch https://logo.clearbit.com/gittigidiyor.com -> fetch failed | curl https://logo.clearbit.com/gittigidiyor.com -> Command failed: curl -fsSL --max-time 20 -A Mozilla/5.0 OmniCoreLogoFetcher/1.0 https://logo.clearbit.com/gittigidiyor.com\ncurl: (6) Could not resolve host: logo.clearbit.com\n"
+    },
+    {
+      "code": "EPTTAA",
+      "label": "ePttAVM",
+      "enumName": "MarketplacePlatform",
+      "status": "ok",
+      "domain": "pttavm.com",
+      "file": "/brand-logos/EPTTAA.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=pttavm.com"
+    },
+    {
+      "code": "CICEKSEPETI",
+      "label": "Ciceksepeti",
+      "enumName": "MarketplacePlatform",
+      "status": "ok",
+      "domain": "ciceksepeti.com",
+      "file": "/brand-logos/CICEKSEPETI.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=ciceksepeti.com"
+    },
+    {
+      "code": "MORHIPO",
+      "label": "Morhipo",
+      "enumName": "MarketplacePlatform",
+      "status": "ok",
+      "domain": "morhipo.com",
+      "file": "/brand-logos/MORHIPO.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=morhipo.com"
+    },
+    {
+      "code": "PAZARAMA",
+      "label": "Pazarama",
+      "enumName": "MarketplacePlatform",
+      "status": "ok",
+      "domain": "pazarama.com",
+      "file": "/brand-logos/PAZARAMA.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=pazarama.com"
+    },
+    {
+      "code": "IDEFIX",
+      "label": "Idefix",
+      "enumName": "MarketplacePlatform",
+      "status": "ok",
+      "domain": "idefix.com",
+      "file": "/brand-logos/IDEFIX.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=idefix.com"
+    },
+    {
+      "code": "GOTURC",
+      "label": "GoTurc",
+      "enumName": "MarketplacePlatform",
+      "status": "ok",
+      "domain": "goturc.com",
+      "file": "/brand-logos/GOTURC.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=goturc.com"
+    },
+    {
+      "code": "PTTAVM",
+      "label": "PTTAVM",
+      "enumName": "MarketplacePlatform",
+      "status": "ok",
+      "domain": "pttavm.com",
+      "file": "/brand-logos/PTTAVM.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=pttavm.com"
+    },
+    {
+      "code": "MODANISA",
+      "label": "Modanisa",
+      "enumName": "MarketplacePlatform",
+      "status": "ok",
+      "domain": "modanisa.com",
+      "file": "/brand-logos/MODANISA.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=modanisa.com"
+    },
+    {
+      "code": "ALLESGO",
+      "label": "Allesgo",
+      "enumName": "MarketplacePlatform",
+      "status": "ok",
+      "domain": "allesgo.com",
+      "file": "/brand-logos/ALLESGO.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=allesgo.com"
+    },
+    {
+      "code": "LOGO",
+      "label": "Logo",
+      "enumName": "AccountingProvider",
+      "status": "ok",
+      "domain": "logo.com.tr",
+      "file": "/brand-logos/LOGO.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=logo.com.tr"
+    },
+    {
+      "code": "MIKRO",
+      "label": "Mikro",
+      "enumName": "AccountingProvider",
+      "status": "ok",
+      "domain": "mikro.com.tr",
+      "file": "/brand-logos/MIKRO.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=mikro.com.tr"
+    },
+    {
+      "code": "DIA",
+      "label": "Dia",
+      "enumName": "AccountingProvider",
+      "status": "ok",
+      "domain": "dia.com.tr",
+      "file": "/brand-logos/DIA.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=dia.com.tr"
+    },
+    {
+      "code": "PARASUT",
+      "label": "Parasut",
+      "enumName": "AccountingProvider",
+      "status": "ok",
+      "domain": "parasut.com",
+      "file": "/brand-logos/PARASUT.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=parasut.com"
+    },
+    {
+      "code": "BIZIMHESAP",
+      "label": "BizimHesap",
+      "enumName": "AccountingProvider",
+      "status": "ok",
+      "domain": "bizimhesap.com",
+      "file": "/brand-logos/BIZIMHESAP.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=bizimhesap.com"
+    },
+    {
+      "code": "TURKCELL_ESIRKET",
+      "label": "Turkcell E-Sirket",
+      "enumName": "AccountingProvider",
+      "status": "ok",
+      "domain": "turkcell.com.tr",
+      "file": "/brand-logos/TURKCELL_ESIRKET.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=turkcell.com.tr"
+    },
+    {
+      "code": "LINK",
+      "label": "Link",
+      "enumName": "AccountingProvider",
+      "status": "ok",
+      "domain": "link.com.tr",
+      "file": "/brand-logos/LINK.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=link.com.tr"
+    },
+    {
+      "code": "ETA",
+      "label": "Eta",
+      "enumName": "AccountingProvider",
+      "status": "ok",
+      "domain": "eta.com.tr",
+      "file": "/brand-logos/ETA.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=eta.com.tr"
+    },
+    {
+      "code": "PAYTR",
+      "label": "PayTR",
+      "enumName": "PaymentProvider",
+      "status": "ok",
+      "domain": "paytr.com",
+      "file": "/brand-logos/PAYTR.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=paytr.com"
+    },
+    {
+      "code": "IYZICO",
+      "label": "iyzico",
+      "enumName": "PaymentProvider",
+      "status": "ok",
+      "domain": "iyzico.com",
+      "file": "/brand-logos/IYZICO.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=iyzico.com"
+    },
+    {
+      "code": "CARI_HAVALE",
+      "label": "Cari Havale",
+      "enumName": "PaymentProvider",
+      "status": "ok",
+      "domain": "tr.wikipedia.org",
+      "file": "/brand-logos/CARI_HAVALE.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=tr.wikipedia.org"
+    },
+    {
+      "code": "BANK_TRANSFER",
+      "label": "Banka Havalesi",
+      "enumName": "PaymentProvider",
+      "status": "ok",
+      "domain": "tr.wikipedia.org",
+      "file": "/brand-logos/BANK_TRANSFER.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=tr.wikipedia.org"
+    },
+    {
+      "code": "YURTICI",
+      "label": "Yurtici Kargo",
+      "enumName": "CargoProvider",
+      "status": "ok",
+      "domain": "yurticikargo.com",
+      "file": "/brand-logos/YURTICI.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=yurticikargo.com"
+    },
+    {
+      "code": "ARAS",
+      "label": "Aras Kargo",
+      "enumName": "CargoProvider",
+      "status": "ok",
+      "domain": "araskargo.com.tr",
+      "file": "/brand-logos/ARAS.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=araskargo.com.tr"
+    },
+    {
+      "code": "MNG",
+      "label": "MNG Kargo",
+      "enumName": "CargoProvider",
+      "status": "placeholder",
+      "domain": "mngkargo.com.tr",
+      "file": "/brand-logos/MNG.png",
+      "source": "fallback:https://www.google.com/s2/favicons?sz=256&domain=wikipedia.org",
+      "reason": "fetch https://logo.clearbit.com/mngkargo.com.tr?size=256&format=png -> fetch failed | curl https://logo.clearbit.com/mngkargo.com.tr?size=256&format=png -> Command failed: curl -fsSL --max-time 20 -A Mozilla/5.0 OmniCoreLogoFetcher/1.0 https://logo.clearbit.com/mngkargo.com.tr?size=256&format=png\ncurl: (6) Could not resolve host: logo.clearbit.com\n | fetch https://www.google.com/s2/favicons?sz=256&domain=mngkargo.com.tr -> HTTP 404 Not Found | curl https://www.google.com/s2/favicons?sz=256&domain=mngkargo.com.tr -> Command failed: curl -fsSL --max-time 20 -A Mozilla/5.0 OmniCoreLogoFetcher/1.0 https://www.google.com/s2/favicons?sz=256&domain=mngkargo.com.tr\ncurl: (56) The requested URL returned error: 404\n | fetch https://logo.clearbit.com/mngkargo.com.tr -> fetch failed | curl https://logo.clearbit.com/mngkargo.com.tr -> Command failed: curl -fsSL --max-time 20 -A Mozilla/5.0 OmniCoreLogoFetcher/1.0 https://logo.clearbit.com/mngkargo.com.tr\ncurl: (6) Could not resolve host: logo.clearbit.com\n"
+    },
+    {
+      "code": "PTT",
+      "label": "PTT Kargo",
+      "enumName": "CargoProvider",
+      "status": "ok",
+      "domain": "ptt.gov.tr",
+      "file": "/brand-logos/PTT.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=ptt.gov.tr"
+    },
+    {
+      "code": "SURAT",
+      "label": "Surat Kargo",
+      "enumName": "CargoProvider",
+      "status": "placeholder",
+      "domain": "suratkargo.com.tr",
+      "file": "/brand-logos/SURAT.png",
+      "source": "fallback:https://www.google.com/s2/favicons?sz=256&domain=wikipedia.org",
+      "reason": "fetch https://logo.clearbit.com/suratkargo.com.tr?size=256&format=png -> fetch failed | curl https://logo.clearbit.com/suratkargo.com.tr?size=256&format=png -> Command failed: curl -fsSL --max-time 20 -A Mozilla/5.0 OmniCoreLogoFetcher/1.0 https://logo.clearbit.com/suratkargo.com.tr?size=256&format=png\ncurl: (6) Could not resolve host: logo.clearbit.com\n | fetch https://www.google.com/s2/favicons?sz=256&domain=suratkargo.com.tr -> HTTP 404 Not Found | curl https://www.google.com/s2/favicons?sz=256&domain=suratkargo.com.tr -> Command failed: curl -fsSL --max-time 20 -A Mozilla/5.0 OmniCoreLogoFetcher/1.0 https://www.google.com/s2/favicons?sz=256&domain=suratkargo.com.tr\ncurl: (56) The requested URL returned error: 404\n | fetch https://logo.clearbit.com/suratkargo.com.tr -> fetch failed | curl https://logo.clearbit.com/suratkargo.com.tr -> Command failed: curl -fsSL --max-time 20 -A Mozilla/5.0 OmniCoreLogoFetcher/1.0 https://logo.clearbit.com/suratkargo.com.tr\ncurl: (6) Could not resolve host: logo.clearbit.com\n"
+    },
+    {
+      "code": "HOROZ",
+      "label": "Horoz Lojistik",
+      "enumName": "CargoProvider",
+      "status": "ok",
+      "domain": "horoz.com.tr",
+      "file": "/brand-logos/HOROZ.png",
+      "source": "fetch:https://www.google.com/s2/favicons?sz=256&domain=horoz.com.tr"
+    }
+  ]
+}

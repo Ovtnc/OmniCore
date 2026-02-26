@@ -52,6 +52,13 @@ export async function POST(
     }
 
     const adapter = getMarketplaceAdapter(platform);
+    if (!adapter.supportsLiveConnectionTest()) {
+      return NextResponse.json(
+        { ok: false, error: `${platform} için canlı bağlantı testi henüz desteklenmiyor` },
+        { status: 501 }
+      );
+    }
+
     const connection = buildConnection({
       platform,
       sellerId,

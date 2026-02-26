@@ -34,6 +34,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { OrderDetailsSheet, type OrderDetail } from '@/components/orders/OrderDetailsSheet';
+import { BrandChip } from '@/components/ui/brand-chip';
 
 const ORDER_STATUS_LABEL: Record<string, string> = {
   PENDING: 'Beklemede',
@@ -402,7 +403,7 @@ function OrdersPageContent() {
                   setPage(1);
                 }}
               >
-                {PLATFORM_LABELS[p] ?? p}
+                <BrandChip code={p} label={PLATFORM_LABELS[p] ?? p} />
               </Button>
             ))}
           </div>
@@ -471,7 +472,7 @@ function OrdersPageContent() {
                                   PLATFORM_COLOR[order.platform] ?? PLATFORM_COLOR.OTHER
                                 }
                               >
-                                {PLATFORM_LABELS[order.platform] ?? order.platform}
+                                <BrandChip code={order.platform} label={PLATFORM_LABELS[order.platform] ?? order.platform} />
                               </Badge>
                             ) : (
                               '—'

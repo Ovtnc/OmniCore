@@ -123,6 +123,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         pathname.startsWith('/logistics') ||
         pathname.startsWith('/b2b') ||
         pathname.startsWith('/reports') ||
+        pathname.startsWith('/notifications') ||
         pathname.startsWith('/support') ||
         pathname.startsWith('/settings') ||
         pathname.startsWith('/tools') ||

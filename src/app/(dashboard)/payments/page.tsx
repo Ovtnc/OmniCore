@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { BrandChip } from '@/components/ui/brand-chip';
 
 const PROVIDERS: { value: string; label: string }[] = [
   { value: 'PAYTR', label: 'PayTR' },
@@ -204,7 +205,7 @@ export default function PaymentsPage() {
                           <SelectContent>
                             {PROVIDERS.map((p) => (
                               <SelectItem key={p.value} value={p.value}>
-                                {p.label}
+                                <BrandChip code={p.value} label={p.label} />
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -244,7 +245,10 @@ export default function PaymentsPage() {
                           <div>
                             <span className="font-medium">{i.name}</span>
                             <span className="ml-2 text-muted-foreground">
-                              ({PROVIDERS.find((p) => p.value === i.provider)?.label ?? i.provider})
+                              (<BrandChip
+                                code={i.provider}
+                                label={PROVIDERS.find((p) => p.value === i.provider)?.label ?? i.provider}
+                              />)
                             </span>
                           </div>
                           <div className="flex items-center gap-2">

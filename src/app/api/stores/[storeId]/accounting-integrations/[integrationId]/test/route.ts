@@ -57,6 +57,13 @@ export async function POST(
     );
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
+    const lower = message.toLowerCase();
+    const status =
+      lower.includes('henüz desteklenmiyor')
+        ? 501
+        : lower.includes('gerekli')
+          ? 400
+          : 500;
     try {
       const { storeId: sid, integrationId: iid } = await params;
       await prisma.accountingIntegration.updateMany({
@@ -69,7 +76,7 @@ export async function POST(
     console.error('Accounting test error:', e);
     return NextResponse.json(
       { ok: false, error: message || 'Bağlantı testi yapılamadı' },
-      { status: 500 }
+      { status }
     );
   }
 }

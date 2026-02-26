@@ -108,6 +108,20 @@ export const useXmlWizardStore = create<XmlWizardState & XmlWizardActions>()(
       setConfirmed: (confirmed) => set({ confirmed }),
       reset: () => set(initialState),
     }),
-    { name: 'omnicore-xml-wizard' }
+    {
+      name: 'omnicore-xml-wizard',
+      version: 2,
+      migrate: (persistedState) => {
+        const raw = (persistedState ?? {}) as Partial<XmlWizardState>;
+        const selectedPlatforms = Array.isArray(raw.selectedPlatforms)
+          ? raw.selectedPlatforms.filter((p): p is string => typeof p === 'string')
+          : [];
+        return {
+          ...initialState,
+          ...raw,
+          selectedPlatforms,
+        };
+      },
+    }
   )
 );

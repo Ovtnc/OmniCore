@@ -8,6 +8,9 @@ export const metadata = {
   description: 'OmniCore hesabınız için yeni şifre belirleyin.',
 };
 
+/** useSearchParams kullanıldığı için statik üretim devre dışı */
+export const dynamic = 'force-dynamic';
+
 export default function ResetPasswordPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-12">

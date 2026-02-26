@@ -1,7 +1,8 @@
 'use client';
 
-import { Suspense, useEffect, useState, useCallback } from 'react';
+import { Suspense, useEffect, useState, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShoppingCart,
   ChevronLeft,
@@ -14,10 +15,15 @@ import {
   PackageCheck,
   XCircle,
   Undo2,
+  Search,
+  Calendar,
+  CheckCheck,
+  FileText,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Table,
   TableBody,
@@ -35,6 +41,11 @@ import {
 } from '@/components/ui/select';
 import { OrderDetailsSheet, type OrderDetail } from '@/components/orders/OrderDetailsSheet';
 import { BrandChip } from '@/components/ui/brand-chip';
+import { EmptyState } from '@/components/ui/empty-state';
+import { formatRelativeTime } from '@/lib/format-relative-time';
+import { toast } from 'sonner';
+import { getCargoTrackingUrl } from '@/lib/cargo-tracking';
+import { cn } from '@/lib/utils';
 
 const ORDER_STATUS_LABEL: Record<string, string> = {
   PENDING: 'Beklemede',
@@ -47,20 +58,13 @@ const ORDER_STATUS_LABEL: Record<string, string> = {
 };
 
 const ORDER_STATUS_STYLE: Record<string, string> = {
-  PENDING:
-    'border-amber-500/40 bg-amber-500/15 text-amber-700 dark:text-amber-400 shadow-sm',
-  CONFIRMED:
-    'border-blue-500/40 bg-blue-500/15 text-blue-700 dark:text-blue-400 shadow-sm',
-  PROCESSING:
-    'border-violet-500/40 bg-violet-500/15 text-violet-700 dark:text-violet-400 shadow-sm',
-  SHIPPED:
-    'border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 shadow-sm',
-  DELIVERED:
-    'border-green-500/40 bg-green-500/15 text-green-700 dark:text-green-400 shadow-sm',
-  CANCELLED:
-    'border-red-500/40 bg-red-500/15 text-red-700 dark:text-red-400 shadow-sm',
-  REFUNDED:
-    'border-slate-500/40 bg-slate-500/15 text-slate-600 dark:text-slate-400 shadow-sm',
+  PENDING: 'bg-amber-500/10 text-amber-700 dark:text-amber-400/90 border-0',
+  CONFIRMED: 'bg-blue-500/10 text-blue-700 dark:text-blue-400/90 border-0',
+  PROCESSING: 'bg-violet-500/10 text-violet-700 dark:text-violet-400/90 border-0',
+  SHIPPED: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400/90 border-0',
+  DELIVERED: 'bg-green-500/10 text-green-700 dark:text-green-400/90 border-0',
+  CANCELLED: 'bg-red-500/10 text-red-700 dark:text-red-400/90 border-0',
+  REFUNDED: 'bg-slate-500/10 text-slate-600 dark:text-slate-400/90 border-0',
 };
 
 const ORDER_STATUS_ICON: Record<string, typeof Clock> = {
@@ -98,16 +102,16 @@ const PLATFORM_LABELS: Record<string, string> = {
   OTHER: 'Diğer',
 };
 
-const PLATFORM_COLOR: Record<string, string> = {
-  TRENDYOL: 'bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/30',
-  HEPSIBURADA: 'bg-orange-600/15 text-orange-800 dark:text-orange-300 border-orange-600/30',
-  AMAZON: 'bg-amber-500/15 text-amber-800 dark:text-amber-400 border-amber-500/30',
-  N11: 'bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30',
-  SHOPIFY: 'bg-green-600/15 text-green-700 dark:text-green-400 border-green-600/30',
-  CICEKSEPETI: 'bg-pink-500/15 text-pink-700 dark:text-pink-400 border-pink-500/30',
-  PAZARAMA: 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30',
-  IDEFIX: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border-indigo-500/30',
-  OTHER: 'bg-muted text-muted-foreground border-border',
+const PLATFORM_BORDER: Record<string, string> = {
+  TRENDYOL: 'border-l-orange-500',
+  HEPSIBURADA: 'border-l-orange-600',
+  AMAZON: 'border-l-amber-500',
+  N11: 'border-l-red-500',
+  SHOPIFY: 'border-l-green-600',
+  CICEKSEPETI: 'border-l-pink-500',
+  PAZARAMA: 'border-l-blue-500',
+  IDEFIX: 'border-l-indigo-500',
+  OTHER: 'border-l-muted-foreground/50',
 };
 
 type StoreOption = { id: string; name: string; slug: string };
@@ -144,10 +148,36 @@ type OrderApi = {
 
 function OrdersFallback() {
   return (
-    <div className="space-y-6">
-      <div className="h-9 w-48 animate-pulse rounded bg-muted" />
-      <div className="h-64 animate-pulse rounded-lg bg-muted/50" />
+    <div className="space-y-6 lg:space-y-8">
+      <div className="flex justify-between gap-4">
+        <div className="h-9 w-48 animate-pulse rounded-xl bg-muted/60" />
+        <div className="h-8 w-24 animate-pulse rounded-full bg-muted/60" />
+      </div>
+      <div className="h-48 animate-pulse rounded-2xl border border-border/40 bg-background/60" />
+      <div className="h-[400px] animate-pulse rounded-2xl border border-border/40 bg-background/60" />
     </div>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const Icon = ORDER_STATUS_ICON[status] ?? Clock;
+  const isPending = status === 'PENDING' || status === 'PROCESSING';
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium border-0',
+        ORDER_STATUS_STYLE[status] ?? 'bg-muted/50 text-muted-foreground'
+      )}
+    >
+      <span
+        className={cn(
+          'h-1.5 w-1.5 shrink-0 rounded-full bg-current',
+          isPending && 'animate-pulse'
+        )}
+      />
+      <Icon className="h-3 w-3 shrink-0 opacity-80" strokeWidth={1.5} />
+      <span>{ORDER_STATUS_LABEL[status] ?? status}</span>
+    </span>
   );
 }
 
@@ -162,6 +192,7 @@ function OrdersPageContent() {
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
   const [dateFrom, setDateFrom] = useState<string>('');
   const [dateTo, setDateTo] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const [data, setData] = useState<{
     orders: OrderApi[];
@@ -174,6 +205,7 @@ function OrdersPageContent() {
   const [sheetOrder, setSheetOrder] = useState<OrderDetail | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetch('/api/stores')
@@ -186,20 +218,23 @@ function OrdersPageContent() {
     setLoading(true);
     const params = new URLSearchParams();
     if (storeId && storeId !== 'all') params.set('storeId', storeId);
-    if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter);
+    if (statusFilter && statusFilter !== 'all') {
+      if (statusFilter === 'cancelled') params.set('status', 'CANCELLED,REFUNDED');
+      else params.set('status', statusFilter);
+    }
     if (platformFilter && platformFilter !== 'all') params.set('platform', platformFilter);
     if (paymentFilter && paymentFilter !== 'all') params.set('paymentStatus', paymentFilter);
     if (dateFrom) params.set('dateFrom', dateFrom);
     if (dateTo) params.set('dateTo', dateTo);
     params.set('page', String(page));
-    params.set('limit', '20');
+    params.set('limit', '10');
     fetch(`/api/orders?${params}`)
       .then((r) => r.json())
       .then((d) => {
         if (d.orders) setData(d);
-        else setData({ orders: [], total: 0, page: 1, limit: 20, totalPages: 0 });
+        else setData({ orders: [], total: 0, page: 1, limit: 10, totalPages: 0 });
       })
-      .catch(() => setData({ orders: [], total: 0, page: 1, limit: 20, totalPages: 0 }))
+      .catch(() => setData({ orders: [], total: 0, page: 1, limit: 10, totalPages: 0 }))
       .finally(() => setLoading(false));
   }, [storeId, statusFilter, platformFilter, paymentFilter, dateFrom, dateTo, page]);
 
@@ -239,6 +274,7 @@ function OrdersPageContent() {
       .then((r) => r.json())
       .then((updated) => {
         if (updated.id) {
+          toast.success('Sipariş güncellendi');
           setData((prev) =>
             prev
               ? {
@@ -252,12 +288,33 @@ function OrdersPageContent() {
           setSheetOrder((prev) =>
             prev?.id === orderId ? { ...prev, status: updated.status } : prev
           );
+          setSelectedIds((prev) => {
+            const next = new Set(prev);
+            next.delete(orderId);
+            return next;
+          });
         }
       })
+      .catch(() => toast.error('Sipariş güncellenemedi'))
       .finally(() => setUpdating(false));
   }, []);
 
+  const bulkConfirm = useCallback(() => {
+    selectedIds.forEach((id) => updateOrderStatus(id, 'CONFIRMED'));
+    setSelectedIds(new Set());
+  }, [selectedIds, updateOrderStatus]);
+
   const orders = data?.orders ?? [];
+  const filteredOrders = useMemo(() => {
+    if (!searchQuery.trim()) return orders;
+    const q = searchQuery.toLowerCase().trim();
+    return orders.filter(
+      (o) =>
+        o.orderNumber?.toLowerCase().includes(q) ||
+        o.customerName?.toLowerCase().includes(q) ||
+        o.customerEmail?.toLowerCase().includes(q)
+    );
+  }, [orders, searchQuery]);
   const totalPages = data?.totalPages ?? 0;
   const toPrice = (v: number | string, currency: string) =>
     Number.isFinite(Number(v))
@@ -267,7 +324,6 @@ function OrdersPageContent() {
       : '–';
 
   const PLATFORM_OPTIONS = Object.keys(PLATFORM_LABELS).filter((k) => k !== 'OTHER');
-
   const PAYMENT_LABELS: Record<string, string> = {
     PENDING: 'Beklemede',
     PAID: 'Ödendi',
@@ -276,280 +332,380 @@ function OrdersPageContent() {
     PARTIAL_REFUND: 'Kısmi iade',
   };
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Siparişler</h1>
-        <p className="text-muted-foreground">
-          Tüm kanallardan gelen siparişler. Tabloda bir satıra tıklayarak detayı açın.
-        </p>
-      </div>
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredOrders.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(filteredOrders.map((o) => o.id)));
+  };
 
-      <Card className="rounded-xl border shadow-sm">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Filtreler</CardTitle>
-          <CardDescription>Mağaza, durum ve pazaryeri ile daraltın</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-            <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Mağaza</span>
-              <Select
-                value={storeId}
-                onValueChange={(v) => {
-                  setStoreId(v);
-                  setPage(1);
-                }}
-              >
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Tümü" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tüm mağazalar</SelectItem>
-                  {stores.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Durum</span>
-              <Select
-                value={statusFilter}
-                onValueChange={(v) => {
-                  setStatusFilter(v);
-                  setPage(1);
-                }}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Tümü" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tüm durumlar</SelectItem>
-                  {Object.entries(ORDER_STATUS_LABEL).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Ödeme</span>
-              <Select
-                value={paymentFilter}
-                onValueChange={(v) => {
-                  setPaymentFilter(v);
-                  setPage(1);
-                }}
-              >
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Tümü" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tümü</SelectItem>
-                  {Object.entries(PAYMENT_LABELS).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Tarih</span>
-              <input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => {
-                  setDateFrom(e.target.value);
-                  setPage(1);
-                }}
-                className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
-              />
-              <span className="text-muted-foreground">–</span>
-              <input
-                type="date"
-                value={dateTo}
-                onChange={(e) => {
-                  setDateTo(e.target.value);
-                  setPage(1);
-                }}
-                className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
-              />
-            </div>
+  return (
+    <div className="space-y-6 lg:space-y-8">
+      {/* Hero */}
+      <motion.div
+        initial={{ opacity: 0, y: -6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+        className="flex flex-wrap items-end justify-between gap-4"
+      >
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Siparişler</h1>
+          <p className="mt-1 text-muted-foreground">
+            Tüm kanallardan gelen siparişler. Satıra tıklayarak detayı açın.
+          </p>
+        </div>
+        <span className="rounded-full border border-border/40 bg-muted/30 px-3 py-1.5 text-sm font-medium text-muted-foreground">
+          Toplam {data?.total ?? '—'} sipariş
+        </span>
+      </motion.div>
+
+      {/* Toolbar: Tabs + Search + Date + Store */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: 0.05 }}
+        className="space-y-4"
+      >
+        <Tabs
+          value={statusFilter}
+          onValueChange={(v) => {
+            setStatusFilter(v);
+            setPage(1);
+          }}
+        >
+          <TabsList className="h-11 w-full flex-wrap justify-start gap-0.5 rounded-xl border border-border/40 bg-muted/20 p-1 shadow-none">
+            <TabsTrigger value="all" className="rounded-lg px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              Hepsi
+            </TabsTrigger>
+            <TabsTrigger value="PENDING" className="rounded-lg px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              Bekleyenler
+            </TabsTrigger>
+            <TabsTrigger value="CONFIRMED" className="rounded-lg px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              Onaylandı
+            </TabsTrigger>
+            <TabsTrigger value="PROCESSING" className="rounded-lg px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              İşleniyor
+            </TabsTrigger>
+            <TabsTrigger value="SHIPPED" className="rounded-lg px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              Kargoda
+            </TabsTrigger>
+            <TabsTrigger value="DELIVERED" className="rounded-lg px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              Teslim
+            </TabsTrigger>
+            <TabsTrigger value="cancelled" className="rounded-lg px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              İptal / İade
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[200px] max-w-sm rounded-xl border border-border/50 bg-background transition-[border-color,box-shadow] duration-200 focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/20 focus-within:ring-offset-0">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors duration-200 pointer-events-none [[data-focus]:~]:text-foreground" />
+            <Input
+              type="search"
+              placeholder="Sipariş no, müşteri..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-10 border-0 bg-transparent pl-9 pr-4 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+            />
           </div>
-          <div className="flex flex-wrap gap-2">
-            <span className="text-sm text-muted-foreground self-center">Pazaryeri:</span>
-            <Button
-              variant={platformFilter === 'all' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => {
-                setPlatformFilter('all');
+          <div className="flex items-center gap-2 rounded-xl border border-border/50 bg-background px-2 transition-[border-color,box-shadow] duration-200 focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/20 focus-within:ring-offset-0">
+            <Calendar className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.5} />
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => {
+                setDateFrom(e.target.value);
                 setPage(1);
               }}
-            >
-              Tümü
-            </Button>
-            {PLATFORM_OPTIONS.map((p) => (
-              <Button
-                key={p}
-                variant={platformFilter === p ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => {
-                  setPlatformFilter(p);
-                  setPage(1);
-                }}
-              >
-                <BrandChip code={p} label={PLATFORM_LABELS[p] ?? p} />
-              </Button>
-            ))}
+              className="h-9 w-[130px] border-0 bg-transparent text-sm shadow-none focus-visible:ring-0"
+            />
+            <span className="text-muted-foreground">–</span>
+            <Input
+              type="date"
+              value={dateTo}
+              onChange={(e) => {
+                setDateTo(e.target.value);
+                setPage(1);
+              }}
+              className="h-9 w-[130px] border-0 bg-transparent text-sm shadow-none focus-visible:ring-0"
+            />
           </div>
-        </CardContent>
-      </Card>
+          <Select
+            value={storeId}
+            onValueChange={(v) => {
+              setStoreId(v);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="h-10 w-[180px] rounded-xl border-border/50">
+              <SelectValue placeholder="Mağaza" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tüm mağazalar</SelectItem>
+              {stores.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={platformFilter}
+            onValueChange={(v) => {
+              setPlatformFilter(v);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="h-10 w-[160px] rounded-xl border-border/50">
+              <SelectValue placeholder="Pazaryeri" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tümü</SelectItem>
+              {PLATFORM_OPTIONS.map((p) => (
+                <SelectItem key={p} value={p}>
+                  {PLATFORM_LABELS[p] ?? p}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </motion.div>
 
-      <Card className="overflow-hidden border-0 shadow-lg shadow-black/5 dark:shadow-none dark:ring-1 dark:ring-border">
-        <CardHeader className="border-b bg-muted/30 pb-4">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <div className="rounded-lg bg-primary/10 p-2">
-              <ShoppingCart className="h-5 w-5 text-primary" />
-            </div>
-            Sipariş listesi
-          </CardTitle>
-          <CardDescription className="text-muted-foreground">
-            Toplam <span className="font-semibold text-foreground">{data?.total ?? 0}</span> sipariş
-            · Sayfa {data?.page ?? 1} / {totalPages || 1}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex min-h-[240px] items-center justify-center rounded-xl border border-dashed border-muted-foreground/20 bg-muted/10">
-              <p className="text-sm text-muted-foreground">Yükleniyor…</p>
-            </div>
-          ) : orders.length === 0 ? (
-            <div className="flex min-h-[240px] flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-muted-foreground/20 bg-muted/10 p-8">
-              <div className="rounded-full bg-muted p-4">
-                <Package className="h-10 w-10 text-muted-foreground" />
-              </div>
-              <p className="text-sm font-medium">Henüz sipariş yok</p>
-              <p className="text-center text-sm text-muted-foreground">
-                Pazaryeri veya B2C kanallarından gelen siparişler burada listelenir.
-              </p>
-            </div>
-          ) : (
-            <>
-              <div className="overflow-hidden rounded-b-xl">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-b bg-muted/40 hover:bg-muted/40">
-                      <TableHead className="font-semibold">Sipariş No</TableHead>
-                      <TableHead className="font-semibold">Pazaryeri</TableHead>
-                      <TableHead className="font-semibold">Müşteri</TableHead>
-                      <TableHead className="text-right font-semibold">Toplam</TableHead>
-                      <TableHead className="font-semibold">Tarih</TableHead>
-                      <TableHead className="font-semibold">Durum</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {orders.map((order) => {
-                      const StatusIcon = ORDER_STATUS_ICON[order.status] ?? Clock;
-                      return (
-                        <TableRow
-                          key={order.id}
-                          className="cursor-pointer border-b transition-colors hover:bg-primary/5 hover:shadow-sm"
-                          onClick={() => openSheet(order)}
-                        >
-                          <TableCell className="font-mono font-medium">
-                            #{order.orderNumber}
-                          </TableCell>
-                          <TableCell>
-                            {order.platform ? (
-                              <Badge
-                                variant="outline"
-                                className={
-                                  PLATFORM_COLOR[order.platform] ?? PLATFORM_COLOR.OTHER
-                                }
-                              >
-                                <BrandChip code={order.platform} label={PLATFORM_LABELS[order.platform] ?? order.platform} />
-                              </Badge>
-                            ) : (
-                              '—'
-                            )}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {order.customerName || order.customerEmail || '—'}
-                          </TableCell>
-                          <TableCell className="text-right font-semibold tabular-nums">
-                            {toPrice(order.total, order.currency)}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground text-sm">
-                            {new Date(order.createdAt).toLocaleDateString('tr-TR', {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </TableCell>
-                          <TableCell onClick={(e) => e.stopPropagation()}>
-                            <Select
-                              value={order.status}
-                              onValueChange={(v) => updateOrderStatus(order.id, v)}
-                              disabled={updating}
-                            >
-                              <SelectTrigger
-                                className={`h-8 w-[140px] border shadow-sm ${
-                                  ORDER_STATUS_STYLE[order.status] ??
-                                  'border-border bg-muted/50 text-muted-foreground'
-                                }`}
-                              >
-                                <StatusIcon className="mr-1.5 h-3.5 w-3.5 shrink-0" />
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {Object.entries(ORDER_STATUS_LABEL).map(([value, label]) => (
-                                  <SelectItem key={value} value={value}>
-                                    {label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-              {totalPages > 1 && (
-                <div className="mt-4 flex items-center justify-between border-t pt-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page <= 1}
-                    onClick={() => setPage((p) => p - 1)}
-                  >
-                    <ChevronLeft className="h-4 w-4" /> Önceki
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    Sayfa {page} / {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page >= totalPages}
-                    onClick={() => setPage((p) => p + 1)}
-                  >
-                    Sonraki <ChevronRight className="h-4 w-4" />
-                  </Button>
+      {/* Table card */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: 0.1 }}
+      >
+        <Card className="overflow-hidden">
+          <CardContent className="p-0">
+            {loading ? (
+              <div className="flex min-h-[320px] items-center justify-center p-8">
+                <div className="flex flex-col items-center gap-3">
+                  <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" strokeWidth={1.5} />
+                  <p className="text-sm text-muted-foreground">Yükleniyor…</p>
                 </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
+              </div>
+            ) : filteredOrders.length === 0 ? (
+              <EmptyState
+                icon={Package}
+                title="Hadi satış yapalım!"
+                description={
+                  orders.length === 0
+                    ? 'Pazaryeri veya B2C kanallarından gelen siparişler burada listelenir.'
+                    : 'Arama veya filtreye uyan sipariş bulunamadı.'
+                }
+                actionLabel={orders.length === 0 ? undefined : undefined}
+              />
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-b border-border/60 bg-muted/20 hover:bg-muted/20 h-12">
+                        <TableHead className="w-12 py-5 pl-5 pr-0 [&:has([role=checkbox])]:pr-0">
+                          <input
+                            type="checkbox"
+                            checked={filteredOrders.length > 0 && selectedIds.size === filteredOrders.length}
+                            onChange={toggleSelectAll}
+                            className="h-4 w-4 rounded border-border focus:ring-2 focus:ring-primary/20"
+                          />
+                        </TableHead>
+                        <TableHead className="py-5 pl-4 font-medium text-muted-foreground">Sipariş No</TableHead>
+                        <TableHead className="py-5 font-medium text-muted-foreground">Pazaryeri</TableHead>
+                        <TableHead className="py-5 font-medium text-muted-foreground">Müşteri</TableHead>
+                        <TableHead className="py-5 text-right font-medium text-muted-foreground">Toplam</TableHead>
+                        <TableHead className="py-5 font-medium text-muted-foreground">Tarih</TableHead>
+                        <TableHead className="py-5 font-medium text-muted-foreground">Kargo</TableHead>
+                        <TableHead className="py-5 font-medium text-muted-foreground">Durum</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <AnimatePresence mode="popLayout">
+                        {filteredOrders.map((order, index) => {
+                          const cargoUrl = getCargoTrackingUrl(order.cargoProvider, order.cargoTrackingNumber);
+                          return (
+                            <motion.tr
+                              key={order.id}
+                              layout
+                              initial={{ opacity: 0, y: 6 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.2, delay: Math.min(index * 0.02, 0.2) }}
+                              className={cn(
+                                'group cursor-pointer border-b border-border/40 bg-muted/30 transition-all duration-200 hover:bg-muted/50 hover:shadow-inner',
+                                selectedIds.has(order.id) && 'bg-primary/5 hover:bg-primary/10'
+                              )}
+                              onClick={() => openSheet(order)}
+                            >
+                              <TableCell
+                                className="w-12 py-5 pl-5 pr-0 align-middle [&:has([role=checkbox])]:pr-0"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={selectedIds.has(order.id)}
+                                  onChange={() => toggleSelect(order.id)}
+                                  className="h-4 w-4 rounded border-border focus:ring-2 focus:ring-primary/20"
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              </TableCell>
+                              <TableCell className="py-5 pl-4 font-mono text-sm font-medium">
+                                #{order.orderNumber}
+                              </TableCell>
+                              <TableCell className="py-5">
+                                {order.platform ? (
+                                  <span
+                                    className={cn(
+                                      'inline-flex items-center gap-2 rounded-full border-l-2 pl-2.5 pr-2 py-1 bg-muted/40',
+                                      PLATFORM_BORDER[order.platform] ?? PLATFORM_BORDER.OTHER
+                                    )}
+                                  >
+                                    <BrandChip
+                                      code={order.platform}
+                                      label={PLATFORM_LABELS[order.platform] ?? order.platform}
+                                      className="text-xs"
+                                    />
+                                  </span>
+                                ) : (
+                                  '—'
+                                )}
+                              </TableCell>
+                              <TableCell className="py-5 text-sm text-muted-foreground">
+                                {order.customerName || order.customerEmail || '—'}
+                              </TableCell>
+                              <TableCell className="py-5 text-right font-mono text-sm font-medium tabular-nums">
+                                {toPrice(order.total, order.currency)}
+                              </TableCell>
+                              <TableCell className="py-5 text-sm text-muted-foreground">
+                                {formatRelativeTime(new Date(order.createdAt))}
+                              </TableCell>
+                              <TableCell className="py-5" onClick={(e) => e.stopPropagation()}>
+                                {cargoUrl ? (
+                                  <a
+                                    href={cargoUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                    title="Kargo takip"
+                                  >
+                                    <Truck className="h-4 w-4" strokeWidth={1.5} />
+                                  </a>
+                                ) : (
+                                  <span className="text-muted-foreground/50">—</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="py-5" onClick={(e) => e.stopPropagation()}>
+                                <Select
+                                  value={order.status}
+                                  onValueChange={(v) => updateOrderStatus(order.id, v)}
+                                  disabled={updating}
+                                >
+                                  <SelectTrigger
+                                    className={cn(
+                                      'h-8 w-[150px] rounded-lg border-0 bg-transparent shadow-none hover:bg-muted/50',
+                                      ORDER_STATUS_STYLE[order.status]
+                                    )}
+                                  >
+                                    {(() => {
+                                      const Icon = ORDER_STATUS_ICON[order.status] ?? Clock;
+                                      return (
+                                        <>
+                                          <Icon className="mr-1.5 h-3.5 w-3.5 shrink-0 opacity-80" strokeWidth={1.5} />
+                                          <SelectValue />
+                                        </>
+                                      );
+                                    })()}
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {Object.entries(ORDER_STATUS_LABEL).map(([value, label]) => (
+                                      <SelectItem key={value} value={value}>
+                                        {label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                            </motion.tr>
+                          );
+                        })}
+                      </AnimatePresence>
+                    </TableBody>
+                  </Table>
+                </div>
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between border-t border-border/40 px-5 py-3">
+                    <p className="text-sm text-muted-foreground">
+                      Sayfa <span className="font-medium text-foreground">{data?.page ?? 1}</span> / {totalPages}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 rounded-lg"
+                        disabled={page <= 1}
+                        onClick={() => setPage((p) => p - 1)}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 rounded-lg"
+                        disabled={page >= totalPages}
+                        onClick={() => setPage((p) => p + 1)}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Floating bulk action bar */}
+      <AnimatePresence>
+        {selectedIds.size > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2"
+          >
+            <div className="flex items-center gap-4 rounded-2xl bg-card/80 px-5 py-3 shadow-xl ring-1 ring-white/10 backdrop-blur-md">
+              <span className="text-sm font-medium text-foreground">
+                {selectedIds.size} sipariş seçildi
+              </span>
+              <Button size="sm" className="rounded-xl" onClick={bulkConfirm}>
+                <CheckCheck className="mr-2 h-4 w-4" />
+                Seçilenleri Onayla
+              </Button>
+              <Button size="sm" variant="outline" className="rounded-xl" disabled title="Yakında">
+                <FileText className="mr-2 h-4 w-4" />
+                Fatura Kes
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="rounded-xl"
+                onClick={() => setSelectedIds(new Set())}
+              >
+                İptal
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <OrderDetailsSheet
         order={sheetOrder}

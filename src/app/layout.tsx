@@ -1,9 +1,11 @@
 import './globals.css';
 import type { Metadata, Viewport } from 'next';
+import { Suspense } from 'react';
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { AuthSessionProvider } from '@/components/providers/session-provider';
 import { TopRouteLoader } from '@/components/navigation/TopRouteLoader';
+import { Toaster } from 'sonner';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -34,8 +36,11 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased`} suppressHydrationWarning>
         <ThemeProvider defaultTheme="system" storageKey="omnicore-theme">
           <AuthSessionProvider>
-            <TopRouteLoader />
+            <Suspense fallback={null}>
+              <TopRouteLoader />
+            </Suspense>
             {children}
+            <Toaster position="top-right" richColors closeButton />
           </AuthSessionProvider>
         </ThemeProvider>
       </body>

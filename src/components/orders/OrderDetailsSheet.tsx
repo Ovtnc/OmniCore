@@ -164,7 +164,7 @@ export function OrderDetailsSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="w-full max-w-lg overflow-y-auto border-l border-border/50 bg-background sm:max-w-xl"
+        className="w-full max-w-lg overflow-y-auto border-l border-border/40 bg-background shadow-xl sm:max-w-xl transition-[transform] duration-300 ease-out"
       >
         <SheetHeader className="border-b border-border/50 px-5 pb-4 pt-4">
           <SheetTitle className="font-mono text-lg tracking-tight">

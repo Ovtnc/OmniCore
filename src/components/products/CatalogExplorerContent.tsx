@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Folder, FolderOpen, Image as ImageIcon, Search, Upload } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Store, FolderOpen, Image as ImageIcon, Search, Upload } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -84,7 +85,8 @@ export function CatalogExplorerContent({ data, buildUrl, storeId, categoryId, on
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      {/* Sticky breadcrumb - always at top */}
+      <div className="sticky top-0 z-10 -mx-1 flex flex-wrap items-center justify-between gap-4 border-b border-border/40 bg-background/80 px-1 pb-4 backdrop-blur-md">
         <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -179,15 +181,21 @@ export function CatalogExplorerContent({ data, buildUrl, storeId, categoryId, on
             ) : (
               filteredStores.map((store) => (
                 <Link key={store.id} href={buildUrl(store.id)}>
-                  <div className="h-full">
-                    <Card className="h-full cursor-pointer transition-shadow hover:shadow-md">
+                  <motion.div
+                    className="h-full"
+                    whileHover={{ scale: 1.02 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <Card className="h-full cursor-pointer transition-shadow hover:shadow-xl">
                       <CardContent className="flex flex-col items-center justify-center gap-2 p-6">
-                        <Folder className="h-12 w-12 text-amber-500/90" />
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                          <Store className="h-7 w-7" strokeWidth={1.5} />
+                        </div>
                         <span className="text-center font-medium">{store.name}</span>
-                        <Badge variant="secondary">{store.productCount} ürün</Badge>
+                        <Badge variant="secondary" className="rounded-full">{store.productCount} ürün</Badge>
                       </CardContent>
                     </Card>
-                  </div>
+                  </motion.div>
                 </Link>
               ))
             )}
@@ -197,9 +205,12 @@ export function CatalogExplorerContent({ data, buildUrl, storeId, categoryId, on
             {data.storeProductCount > 0 && (
               <div key="all" className="flex flex-col gap-2">
                 <Link href={buildUrl(data.store.id, 'all')} className="block h-full">
-                  <Card className="h-full cursor-pointer transition-shadow hover:shadow-md">
-                    <CardContent className="flex h-full flex-col gap-3 p-5">
-                      <FolderOpen className="h-12 w-12 text-blue-500/80" />
+                  <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
+                    <Card className="h-full cursor-pointer transition-shadow hover:shadow-xl">
+                      <CardContent className="flex h-full flex-col gap-3 p-5">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                          <FolderOpen className="h-7 w-7" strokeWidth={1.5} />
+                        </div>
                       <span className="line-clamp-2 min-h-12 text-base font-medium leading-6">
                         Tüm ürünler
                       </span>
@@ -209,6 +220,7 @@ export function CatalogExplorerContent({ data, buildUrl, storeId, categoryId, on
                       </div>
                     </CardContent>
                   </Card>
+                  </motion.div>
                 </Link>
                 {onUploadToMarketplace && (
                   <Button
@@ -232,13 +244,16 @@ export function CatalogExplorerContent({ data, buildUrl, storeId, categoryId, on
             {filteredCategories.map((cat) => (
               <div key={cat.id} className="flex flex-col gap-2">
                 <Link href={buildUrl(data.store.id, cat.id)} className="block h-full">
-                  <Card
-                    className={`h-full cursor-pointer transition-shadow hover:shadow-md ${
-                      cat.productCount === 0 ? 'opacity-60' : ''
-                    }`}
-                  >
-                    <CardContent className="flex h-full flex-col gap-3 p-5">
-                      <FolderOpen className="h-12 w-12 text-amber-500/80" />
+                  <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }} className="h-full">
+                    <Card
+                      className={`h-full cursor-pointer transition-shadow hover:shadow-xl ${
+                        cat.productCount === 0 ? 'opacity-60' : ''
+                      }`}
+                    >
+                      <CardContent className="flex h-full flex-col gap-3 p-5">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                          <FolderOpen className="h-7 w-7" strokeWidth={1.5} />
+                        </div>
                       <span className="line-clamp-3 min-h-16 text-base font-medium leading-6">
                         {readableCategoryName(cat.name)}
                       </span>
@@ -250,6 +265,7 @@ export function CatalogExplorerContent({ data, buildUrl, storeId, categoryId, on
                       </div>
                     </CardContent>
                   </Card>
+                  </motion.div>
                 </Link>
                 {onUploadToMarketplace && cat.productCount > 0 && (
                   <Button
@@ -286,8 +302,8 @@ export function CatalogExplorerContent({ data, buildUrl, storeId, categoryId, on
               </p>
             ) : (
               filteredProducts.map((product) => (
-                <div key={product.id}>
-                  <Card className="h-full overflow-hidden transition-shadow hover:shadow-md">
+                <motion.div key={product.id} whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
+                  <Card className="h-full overflow-hidden transition-shadow hover:shadow-xl">
                     <CardContent className="p-0">
                       <div className="aspect-square bg-muted/30 relative">
                         {product.imageUrl ? (
@@ -326,7 +342,7 @@ export function CatalogExplorerContent({ data, buildUrl, storeId, categoryId, on
                       </div>
                     </CardContent>
                   </Card>
-                </div>
+                </motion.div>
               ))
             )}
           </div>

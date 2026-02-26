@@ -7,6 +7,7 @@ import { getMarketplaceAdapter } from '@/services/marketplaces';
 import { getConnectionWithDecryptedCredentials, toAdapterConnection } from '@/lib/marketplace-connection';
 import type { NormalizedOrderPayload } from '@/services/marketplaces/types';
 import type { OrderStatus } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 
 const TRENDYOL_ORDER_NUMBER_PREFIX = 'TY-';
@@ -120,7 +121,7 @@ async function upsertOrderFromPayload(
       total: toDecimal(payload.total),
       currency: payload.currency ?? 'TRY',
       paymentMethod: payload.paymentMethod ?? undefined,
-      rawPayload: payload.rawPayload ?? undefined,
+      rawPayload: (payload.rawPayload ?? undefined) as Prisma.InputJsonValue | undefined,
     },
     update: {
       status: mapToOrderStatus(payload.status),
@@ -134,7 +135,7 @@ async function upsertOrderFromPayload(
       shippingCost: toDecimal(payload.shippingCost ?? 0),
       discountTotal: toDecimal(payload.discountTotal ?? 0),
       total: toDecimal(payload.total),
-      rawPayload: payload.rawPayload ?? undefined,
+      rawPayload: (payload.rawPayload ?? undefined) as Prisma.InputJsonValue | undefined,
     },
     select: { id: true },
   });
@@ -168,7 +169,7 @@ async function upsertOrderFromPayload(
         taxRate: toDecimal(taxRate),
         taxAmount: toDecimal(taxAmount),
         total: toDecimal(item.total),
-        rawPayload: item.rawPayload ?? undefined,
+        rawPayload: (item.rawPayload ?? undefined) as Prisma.InputJsonValue | undefined,
       },
     });
   }
@@ -210,7 +211,7 @@ export async function syncTrendyolOrders(
   }
 
   const connection = toAdapterConnection(decrypted);
-  const adapter = getMarketplaceAdapter('TRENDYOL') as {
+  const adapter = getMarketplaceAdapter('TRENDYOL') as unknown as {
     fetchOrders: (
       conn: typeof connection,
       params?: {

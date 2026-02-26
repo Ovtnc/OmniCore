@@ -63,11 +63,18 @@ export function SyncMonitor() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="rounded-2xl border bg-card/80 p-6 shadow-sm backdrop-blur-sm"
+      className="rounded-2xl border border-border/40 bg-background/60 p-6 shadow-none ring-1 ring-white/5 backdrop-blur-sm dark:bg-background/40"
     >
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold flex items-center gap-2">
-          <Activity className="h-5 w-5 text-primary" />
+          <span
+            className="relative flex h-2 w-2"
+            aria-hidden
+          >
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+          </span>
+          <Activity className="h-5 w-5 text-primary" strokeWidth={1.5} />
           Canlı Senkronizasyon
         </h3>
         <span className="font-mono text-sm font-medium text-primary">
@@ -75,18 +82,18 @@ export function SyncMonitor() {
         </span>
       </div>
 
-      <Progress value={percentage} className="h-2.5" />
+      <Progress value={percentage} className="h-1.5 rounded-full" />
 
       <div className="grid grid-cols-3 gap-4 mt-6">
-        <div className="text-center rounded-lg bg-muted/50 py-3">
+        <div className="text-center rounded-xl border border-border/40 bg-muted/30 py-3 backdrop-blur-sm">
           <p className="text-xs text-muted-foreground">Bekleyen</p>
           <p className="text-xl font-bold">{waiting + (activeJob ? Math.max(0, activeJob.total - activeJob.processed) : 0)}</p>
         </div>
-        <div className="text-center rounded-lg bg-green-500/10 py-3">
-          <p className="text-xs text-green-600 dark:text-green-400">Tamamlanan</p>
-          <p className="text-xl font-bold text-green-700 dark:text-green-300">{done}</p>
+        <div className="text-center rounded-xl border border-border/40 bg-emerald-500/10 py-3 backdrop-blur-sm">
+          <p className="text-xs text-emerald-600 dark:text-emerald-400">Tamamlanan</p>
+          <p className="text-xl font-bold text-emerald-700 dark:text-emerald-300">{done}</p>
         </div>
-        <div className="text-center rounded-lg bg-destructive/10 py-3">
+        <div className="text-center rounded-xl border border-border/40 bg-destructive/10 py-3 backdrop-blur-sm">
           <p className="text-xs text-destructive">Hatalı</p>
           <p className="text-xl font-bold text-destructive">{failed}</p>
         </div>

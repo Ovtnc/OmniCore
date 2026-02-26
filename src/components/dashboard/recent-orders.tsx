@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import type { Order, Store, OrderItem } from '@prisma/client';
 
@@ -21,11 +22,11 @@ export function RecentOrders({ orders }: { orders: OrderWithRelations[] }) {
   return (
     <div className="space-y-3">
       {orders.map((order) => (
-        <Link
-          key={order.id}
-          href={`/orders?orderId=${order.id}`}
-          className="block rounded-lg border p-3 transition-colors hover:bg-accent/50"
-        >
+        <Link key={order.id} href={`/orders?orderId=${order.id}`}>
+          <motion.div
+            className="block rounded-xl bg-muted/30 p-3 ring-1 ring-white/5 transition-all duration-200 hover:bg-muted/50 hover:shadow-md"
+            whileHover={{ scale: 1.01 }}
+          >
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <p className="font-medium">
@@ -53,6 +54,7 @@ export function RecentOrders({ orders }: { orders: OrderWithRelations[] }) {
               </span>
             </div>
           </div>
+          </motion.div>
         </Link>
       ))}
     </div>

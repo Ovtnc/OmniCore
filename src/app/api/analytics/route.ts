@@ -1,206 +1,176 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getBrandLabel } from '@/lib/brands';
 
-const PLATFORM_LABEL: Record<string, string> = {
-  TRENDYOL: 'Trendyol',
-  HEPSIBURADA: 'Hepsiburada',
-  AMAZON: 'Amazon',
-  N11: 'N11',
-  SHOPIFY: 'Shopify',
-  WOOCOMMERCE: 'WooCommerce',
-};
+const EXCLUDED_ORDER_STATUSES = ['CANCELLED', 'REFUNDED'] as const;
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const period = searchParams.get('period') ?? 'day'; // day | week | month
+type Period = 'day' | 'week' | 'month';
 
+function getDateRange(period: Period): { from: Date; to: Date } {
+  const to = new Date();
+  to.setHours(23, 59, 59, 999);
+  const from = new Date(to);
+
+  if (period === 'day') {
+    from.setDate(from.getDate() - 30);
+    from.setHours(0, 0, 0, 0);
+  } else if (period === 'week') {
+    from.setDate(from.getDate() - 12 * 7);
+    from.setHours(0, 0, 0, 0);
+  } else {
+    from.setMonth(from.getMonth() - 12);
+    from.setDate(1);
+    from.setHours(0, 0, 0, 0);
+  }
+  return { from, to };
+}
+
+function groupKey(date: Date, period: Period): string {
+  if (period === 'day') {
+    return date.toISOString().slice(0, 10);
+  }
+  if (period === 'week') {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    d.setDate(diff);
+    return d.toISOString().slice(0, 10);
+  }
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-01`;
+}
+
+/** GET - Analitik verileri (ciro, sipariş, ürün, platform, düşük stok) */
+export async function GET(req: NextRequest) {
   try {
-    const validPeriod = period === 'week' ? 'week' : period === 'month' ? 'month' : 'day';
-    const revenueTimeSeries = await getRevenueTimeSeries(validPeriod);
-    const [topProducts, lowStockProducts, byPlatform, summary] = await Promise.all([
-      getTopProducts(15),
-      getLowStockProducts(15),
-      getOrdersByPlatform(),
-      getSummary(),
+    const period = (req.nextUrl.searchParams.get('period') || 'day') as Period;
+    if (!['day', 'week', 'month'].includes(period)) {
+      return NextResponse.json({ error: 'Geçersiz period' }, { status: 400 });
+    }
+
+    const { from, to } = getDateRange(period);
+
+    const [orders, orderItemsWithProduct, products, lowStockProducts, lowStockCount] = await Promise.all([
+      prisma.order.findMany({
+        where: {
+          status: { notIn: [...EXCLUDED_ORDER_STATUSES] },
+          createdAt: { gte: from, lte: to },
+        },
+        select: {
+          id: true,
+          total: true,
+          createdAt: true,
+          platform: true,
+        },
+        orderBy: { createdAt: 'asc' },
+      }),
+      prisma.orderItem.findMany({
+        where: {
+          order: {
+            status: { notIn: [...EXCLUDED_ORDER_STATUSES] },
+            createdAt: { gte: from, lte: to },
+          },
+        },
+        select: {
+          productId: true,
+          sku: true,
+          name: true,
+          quantity: true,
+          total: true,
+        },
+      }),
+      prisma.product.count(),
+      prisma.product.findMany({
+        where: { stockQuantity: { lte: 10 } },
+        select: {
+          id: true,
+          name: true,
+          sku: true,
+          stockQuantity: true,
+          listPrice: true,
+          salePrice: true,
+        },
+        orderBy: { stockQuantity: 'asc' },
+      }),
+      prisma.product.count({ where: { stockQuantity: { lte: 5 } } }),
     ]);
 
+    const totalRevenue = orders.reduce((sum, o) => sum + Number(o.total), 0);
+    const orderCount = orders.length;
+
+    const revenueByKey: Record<string, { revenue: number; count: number }> = {};
+    for (const o of orders) {
+      const key = groupKey(o.createdAt, period);
+      if (!revenueByKey[key]) revenueByKey[key] = { revenue: 0, count: 0 };
+      revenueByKey[key].revenue += Number(o.total);
+      revenueByKey[key].count += 1;
+    }
+    const revenueTimeSeries = Object.entries(revenueByKey)
+      .map(([date, v]) => ({ date, revenue: v.revenue, count: v.count }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    const byProductId: Record<
+      string,
+      { productId: string; name: string; sku: string; quantitySold: number; revenue: number }
+    > = {};
+    for (const item of orderItemsWithProduct) {
+      const id = item.productId;
+      if (!byProductId[id]) {
+        byProductId[id] = {
+          productId: id,
+          name: item.name,
+          sku: item.sku,
+          quantitySold: 0,
+          revenue: 0,
+        };
+      }
+      byProductId[id].quantitySold += item.quantity;
+      byProductId[id].revenue += Number(item.total);
+    }
+    const topProducts = Object.values(byProductId)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 15);
+
+    const byPlatform: Record<string, { count: number; revenue: number }> = {};
+    for (const o of orders) {
+      const platform = o.platform ?? 'OTHER';
+      if (!byPlatform[platform]) byPlatform[platform] = { count: 0, revenue: 0 };
+      byPlatform[platform].count += 1;
+      byPlatform[platform].revenue += Number(o.total);
+    }
+    const platformArray = Object.entries(byPlatform).map(([platform, v]) => ({
+      platform,
+      label: getBrandLabel(platform),
+      count: v.count,
+      revenue: v.revenue,
+    }));
+
+
+    const lowStockList = lowStockProducts.map((p) => ({
+      id: p.id,
+      name: p.name,
+      sku: p.sku,
+      stockQuantity: p.stockQuantity,
+      listPrice: Number(p.listPrice),
+      salePrice: Number(p.salePrice),
+    }));
+
     return NextResponse.json({
+      summary: {
+        orderCount,
+        totalRevenue,
+        productCount: products,
+        lowStockCount,
+      },
       revenueTimeSeries,
       topProducts,
-      lowStockProducts,
-      byPlatform: byPlatform.map((p) => ({
-        platform: p.platform ?? 'DİĞER',
-        label: PLATFORM_LABEL[p.platform ?? ''] ?? p.platform ?? 'Diğer',
-        count: p._count,
-        revenue: Number(p._sum.total ?? 0),
-      })),
-      summary,
+      lowStockProducts: lowStockList,
+      byPlatform: platformArray,
     });
   } catch (e) {
     console.error('Analytics API error:', e);
     return NextResponse.json(
-      {
-        revenueTimeSeries: [],
-        topProducts: [],
-        lowStockProducts: [],
-        byPlatform: [],
-        summary: {
-          orderCount: 0,
-          totalRevenue: 0,
-          productCount: 0,
-          lowStockCount: 0,
-        },
-      },
-      { status: 200 }
+      { error: 'Analitik veriler yüklenemedi' },
+      { status: 500 }
     );
   }
-}
-
-async function getRevenueTimeSeries(period: 'day' | 'week' | 'month') {
-  const intervalDays = period === 'month' ? 365 : period === 'week' ? 84 : 30;
-  const trunc =
-    period === 'month'
-      ? "date_trunc('month', o.\"createdAt\")::date"
-      : period === 'week'
-        ? "date_trunc('week', o.\"createdAt\")::date"
-        : "date_trunc('day', o.\"createdAt\")::date";
-
-  type Row = { date: Date; revenue: string; count: string };
-  let rows: Row[] = [];
-  try {
-    rows = await prisma.$queryRawUnsafe<Row[]>(
-      `SELECT ${trunc} as date, COALESCE(SUM(o.total), 0)::decimal as revenue, COUNT(*)::int as count
-       FROM "Order" o
-       WHERE o.status NOT IN ('CANCELLED', 'REFUNDED')
-         AND o."createdAt" >= (CURRENT_DATE - (${intervalDays} * INTERVAL '1 day'))
-       GROUP BY 1 ORDER BY 1`
-    );
-  } catch {
-    rows = [];
-  }
-
-  if (rows.length === 0) {
-    const points: { date: string; revenue: number; count: number }[] = [];
-    const now = new Date();
-    const daysBack = period === 'month' ? 365 : period === 'week' ? 84 : 30;
-    for (let i = daysBack - 1; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(d.getDate() - i);
-      d.setHours(0, 0, 0, 0);
-      let end = new Date(d);
-      if (period === 'month') end.setMonth(end.getMonth() + 1);
-      else if (period === 'week') end.setDate(end.getDate() + 7);
-      else end.setDate(end.getDate() + 1);
-
-      const agg = await prisma.order.aggregate({
-        _sum: { total: true },
-        _count: true,
-        where: {
-          status: { notIn: ['CANCELLED', 'REFUNDED'] },
-          createdAt: { gte: d, lt: end },
-        },
-      });
-      points.push({
-        date: d.toISOString().slice(0, 10),
-        revenue: Number(agg._sum.total ?? 0),
-        count: agg._count,
-      });
-    }
-    return period === 'month' ? points.filter((_, i) => i % 30 === 0).slice(-12) : points;
-  }
-
-  return rows.map((r) => ({
-    date: (typeof r.date === 'string' ? r.date : new Date(r.date).toISOString().slice(0, 10)).slice(0, 10),
-    revenue: Number(r.revenue),
-    count: Number(r.count),
-  }));
-}
-
-async function getTopProducts(limit: number) {
-  const items = await prisma.orderItem.groupBy({
-    by: ['productId'],
-    _sum: { total: true, quantity: true },
-    where: {
-      order: { status: { notIn: ['CANCELLED', 'REFUNDED'] } },
-    },
-  });
-
-  if (items.length === 0) return [];
-  const productIds = items.map((i) => i.productId);
-  const products = await prisma.product.findMany({
-    where: { id: { in: productIds } },
-    select: { id: true, name: true, sku: true },
-  });
-  const byId = Object.fromEntries(products.map((p) => [p.id, p]));
-
-  return items
-    .map((i) => ({
-      productId: i.productId,
-      name: byId[i.productId]?.name ?? '–',
-      sku: byId[i.productId]?.sku ?? '–',
-      quantitySold: Number(i._sum.quantity ?? 0),
-      revenue: Number(i._sum.total ?? 0),
-    }))
-    .sort((a, b) => b.revenue - a.revenue)
-    .slice(0, limit);
-}
-
-async function getLowStockProducts(limit: number) {
-  const products = await prisma.product.findMany({
-    where: {
-      trackInventory: true,
-      stockQuantity: { lte: 10 },
-    },
-    orderBy: { stockQuantity: 'asc' },
-    take: limit,
-    select: {
-      id: true,
-      name: true,
-      sku: true,
-      stockQuantity: true,
-      listPrice: true,
-      salePrice: true,
-    },
-  });
-  return products.map((p) => ({
-    id: p.id,
-    name: p.name,
-    sku: p.sku,
-    stockQuantity: p.stockQuantity,
-    listPrice: Number(p.listPrice ?? 0),
-    salePrice: Number(p.salePrice ?? 0),
-  }));
-}
-
-async function getOrdersByPlatform() {
-  const result = await prisma.order.groupBy({
-    by: ['platform'],
-    _count: true,
-    _sum: { total: true },
-    where: { status: { notIn: ['CANCELLED', 'REFUNDED'] } },
-  });
-  return result;
-}
-
-async function getSummary() {
-  const [orderCount, orderTotalRevenue, productCount, lowStockCount] = await Promise.all([
-    prisma.order.count(),
-    prisma.order.aggregate({
-      _sum: { total: true },
-      where: { status: { notIn: ['CANCELLED', 'REFUNDED'] } },
-    }),
-    prisma.product.count(),
-    prisma.product.count({
-      where: {
-        trackInventory: true,
-        stockQuantity: { lte: 5 },
-      },
-    }),
-  ]);
-  return {
-    orderCount,
-    totalRevenue: Number(orderTotalRevenue._sum.total ?? 0),
-    productCount,
-    lowStockCount,
-  };
 }

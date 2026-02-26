@@ -63,7 +63,7 @@ async function getLookupMaps(storeId: string): Promise<{
   if (!decrypted?.apiKey || !decrypted?.apiSecret) return null;
 
   const connection = toAdapterConnection(decrypted);
-  const adapter = getMarketplaceAdapter('TRENDYOL') as {
+  const adapter = getMarketplaceAdapter('TRENDYOL') as unknown as {
     getBrands: (c: typeof connection) => Promise<{ id: number; name: string }[]>;
     getCategoryTree: (c: typeof connection) => Promise<{ id: number; name: string; subCategories?: unknown[] }[]>;
   };

@@ -95,6 +95,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const hasTrendyol = await prisma.marketplaceConnection.findFirst({
+      where: { storeId, platform: 'TRENDYOL', isActive: true },
+      select: { id: true },
+    });
+    const trendyolBrandId =
+      body.trendyolBrandId != null && body.trendyolBrandId !== ''
+        ? parseInt(String(body.trendyolBrandId), 10)
+        : null;
+    const trendyolCategoryId =
+      body.trendyolCategoryId != null && body.trendyolCategoryId !== ''
+        ? parseInt(String(body.trendyolCategoryId), 10)
+        : null;
+    if (hasTrendyol && (trendyolBrandId == null || trendyolBrandId < 1 || trendyolCategoryId == null || trendyolCategoryId < 1)) {
+      return NextResponse.json(
+        {
+          error:
+            'Bu mağazada Trendyol bağlantısı var. Trendyol Marka ID ve Kategori ID (1 veya üzeri) zorunludur.',
+        },
+        { status: 400 }
+      );
+    }
+
     let slug = typeof body.slug === 'string' ? body.slug.trim() : slugify(name);
     if (!slug) slug = slugify(name);
     let baseSlug = slug;
@@ -151,6 +173,8 @@ export async function POST(req: NextRequest) {
         trackInventory: body.trackInventory !== false,
         isActive: body.isActive !== false,
         isB2bEligible: body.isB2bEligible === true,
+        ...(trendyolBrandId != null && trendyolBrandId >= 1 ? { trendyolBrandId } : {}),
+        ...(trendyolCategoryId != null && trendyolCategoryId >= 1 ? { trendyolCategoryId } : {}),
       },
     });
 

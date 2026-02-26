@@ -1,8 +1,10 @@
 /**
  * Platform adına göre doğru adapter sınıfını döndüren factory.
- * Prisma MarketplacePlatform enum ile uyumlu.
+ * Prisma MarketplacePlatform enum'ındaki tüm değerler desteklenir; listede olmayan
+ * platformlar StubMarketplaceAdapter ile sarılır (yeni enum değerleri otomatik stub alır).
  */
 
+import { MarketplacePlatform } from '@prisma/client';
 import { MarketplaceAdapter } from './base.adapter';
 import { TrendyolAdapter } from './trendyol.adapter';
 import { HepsiburadaAdapter } from './hepsiburada.adapter';
@@ -18,6 +20,7 @@ import { ModaNisaAdapter } from './modanisa.adapter';
 import { AllesgoAdapter } from './allesgo.adapter';
 import { StubMarketplaceAdapter } from './stub.adapter';
 
+/** Gerçek implementasyonu olan platformlar */
 const ADAPTER_MAP: Record<string, () => MarketplaceAdapter> = {
   TRENDYOL: () => new TrendyolAdapter(),
   HEPSIBURADA: () => new HepsiburadaAdapter(),
@@ -43,12 +46,20 @@ const ADAPTER_MAP: Record<string, () => MarketplaceAdapter> = {
   OTHER: () => new StubMarketplaceAdapter('OTHER'),
 };
 
+/** Prisma enum'ındaki henüz ADAPTER_MAP'te olmayan platformlar için stub üretir */
+const enumValues = Object.values(MarketplacePlatform) as string[];
+const fullMap: Record<string, () => MarketplaceAdapter> = { ...ADAPTER_MAP };
+for (const p of enumValues) {
+  if (!(p in fullMap)) fullMap[p] = () => new StubMarketplaceAdapter(p);
+}
+
 /**
  * Platform string'ine göre adapter örneği döner.
+ * Bilinmeyen platformlar StubMarketplaceAdapter ile sarılır.
  */
 export function getMarketplaceAdapter(platform: string): MarketplaceAdapter {
   const key = platform.toUpperCase().replace(/\s/g, '');
-  const factory = ADAPTER_MAP[key];
+  const factory = fullMap[key];
   if (factory) return factory();
   return new StubMarketplaceAdapter(platform);
 }

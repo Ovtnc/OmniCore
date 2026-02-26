@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { Settings, Save } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -48,7 +50,6 @@ export default function SettingsPage() {
   const [store, setStore] = useState<StoreDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [form, setForm] = useState({
     name: '',
     domain: '',
@@ -98,7 +99,6 @@ export default function SettingsPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!storeId) return;
-    setMessage(null);
     setSaving(true);
     fetch(`/api/stores/${storeId}`, {
       method: 'PATCH',
@@ -115,20 +115,25 @@ export default function SettingsPage() {
       .then((data) => {
         if (data.error) throw new Error(data.error);
         setStore(data);
-        setMessage({ type: 'success', text: 'Ayarlar kaydedildi.' });
+        toast.success('Ayarlar kaydedildi.');
       })
-      .catch((err) => setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Kaydedilemedi' }))
+      .catch((err) => toast.error(err instanceof Error ? err.message : 'Kaydedilemedi'))
       .finally(() => setSaving(false));
   };
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Ayarlar</h1>
-        <p className="text-muted-foreground">
+    <div className="space-y-6">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+        className="mb-6"
+      >
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Ayarlar</h1>
+        <p className="mt-1 text-muted-foreground">
           Hesap ve mağaza ayarları.
         </p>
-      </div>
+      </motion.div>
 
       {stores.length === 0 ? (
         <Card>
@@ -140,6 +145,11 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       ) : (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.05 }}
+        >
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -242,11 +252,6 @@ export default function SettingsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                {message && (
-                  <p className={message.type === 'success' ? 'text-green-600 text-sm' : 'text-destructive text-sm'}>
-                    {message.text}
-                  </p>
-                )}
                 <div className="flex gap-2">
                   <Button type="submit" disabled={saving}>
                     <Save className="h-4 w-4 mr-2" />
@@ -262,6 +267,7 @@ export default function SettingsPage() {
             )}
           </CardContent>
         </Card>
+        </motion.div>
       )}
     </div>
   );

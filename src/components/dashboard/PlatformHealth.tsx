@@ -42,11 +42,11 @@ export function PlatformHealth() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: 0.1 }}
     >
-      <Card>
+      <Card className="rounded-2xl border-border/40 bg-background/60 shadow-none ring-1 ring-white/5 backdrop-blur-sm dark:bg-background/40">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <div>
             <CardTitle className="text-base font-medium flex items-center gap-2">
-              <Link2 className="h-4 w-4 text-primary" />
+              <Link2 className="h-4 w-4 text-primary" strokeWidth={1.5} />
               Platform Sağlık Durumu
             </CardTitle>
             <CardDescription>
@@ -54,13 +54,13 @@ export function PlatformHealth() {
             </CardDescription>
           </div>
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/marketplace">Ayarlar <ChevronRight className="ml-1 h-4 w-4" /></Link>
+            <Link href="/marketplace">Ayarlar <ChevronRight className="ml-1 h-4 w-4" strokeWidth={1.5} /></Link>
           </Button>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="flex items-center gap-2 py-4 text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.5} />
               <span className="text-sm">Kontrol ediliyor…</span>
             </div>
           ) : items.length === 0 ? (
@@ -72,13 +72,19 @@ export function PlatformHealth() {
               {items.map((item) => (
                 <li
                   key={item.id}
-                  className="flex items-center justify-between gap-2 rounded-lg border bg-muted/30 px-3 py-2"
+                  className="flex items-center justify-between gap-2 rounded-xl border border-border/40 bg-muted/30 px-3 py-2 backdrop-blur-sm"
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     {item.ok ? (
-                      <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600 dark:text-green-400" />
+                      <>
+                        <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                          <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+                        </span>
+                        <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600 dark:text-green-400" strokeWidth={1.5} />
+                      </>
                     ) : (
-                      <XCircle className="h-4 w-4 shrink-0 text-destructive" />
+                      <XCircle className="h-4 w-4 shrink-0 text-destructive" strokeWidth={1.5} />
                     )}
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate">

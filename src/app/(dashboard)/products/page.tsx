@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { motion } from 'framer-motion';
 import {
   Package,
   Search,
@@ -38,6 +39,8 @@ import {
 } from '@/components/ui/dialog';
 import { CatalogExplorer } from '@/components/products/CatalogExplorer';
 import { ProductFormSheet } from '@/components/products/ProductFormSheet';
+import { EmptyState } from '@/components/ui/empty-state';
+import { toast } from 'sonner';
 
 type StoreOption = { id: string; name: string; slug: string };
 type Product = {
@@ -86,7 +89,6 @@ function ProductsPageContent() {
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [sending, setSending] = useState(false);
-  const [sendMessage, setSendMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [productFormOpen, setProductFormOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -152,7 +154,6 @@ function ProductsPageContent() {
 
   const handleSendToMarketplace = async () => {
     if (!storeId || storeId === 'all' || selectedIds.size === 0) return;
-    setSendMessage(null);
     setSending(true);
     try {
       const res = await fetch(`/api/stores/${storeId}/marketplace-sync`, {
@@ -162,10 +163,10 @@ function ProductsPageContent() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gönderilemedi');
-      setSendMessage({ type: 'success', text: data.message || `${selectedIds.size} ürün kuyruğa eklendi.` });
+      toast.success(data.message || `${selectedIds.size} ürün kuyruğa eklendi.`);
       setSelectedIds(new Set());
     } catch (e) {
-      setSendMessage({ type: 'error', text: e instanceof Error ? e.message : 'Gönderilemedi' });
+      toast.error(e instanceof Error ? e.message : 'Gönderilemedi');
     } finally {
       setSending(false);
     }
@@ -174,7 +175,6 @@ function ProductsPageContent() {
   const handleDeleteProduct = async () => {
     if (!productToDelete) return;
     setDeletingId(productToDelete.id);
-    setSendMessage(null);
     try {
       const res = await fetch(`/api/products/${productToDelete.id}`, { method: 'DELETE' });
       const data = await res.json();
@@ -186,9 +186,9 @@ function ProductsPageContent() {
         return next;
       });
       setRefreshKey((k) => k + 1);
-      setSendMessage({ type: 'success', text: 'Ürün silindi.' });
+      toast.success('Ürün silindi.');
     } catch (e) {
-      setSendMessage({ type: 'error', text: e instanceof Error ? e.message : 'Ürün silinemedi' });
+      toast.error(e instanceof Error ? e.message : 'Ürün silinemedi');
     } finally {
       setDeletingId(null);
     }
@@ -198,7 +198,6 @@ function ProductsPageContent() {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
     setBulkDeleting(true);
-    setSendMessage(null);
     try {
       const res = await fetch('/api/products/bulk-delete', {
         method: 'POST',
@@ -210,9 +209,9 @@ function ProductsPageContent() {
       setBulkDeleteOpen(false);
       setSelectedIds(new Set());
       setRefreshKey((k) => k + 1);
-      setSendMessage({ type: 'success', text: data.message || `${data.deleted ?? 0} ürün silindi.` });
+      toast.success(data.message || `${data.deleted ?? 0} ürün silindi.`);
     } catch (e) {
-      setSendMessage({ type: 'error', text: e instanceof Error ? e.message : 'Silme başarısız' });
+      toast.error(e instanceof Error ? e.message : 'Silme başarısız');
     } finally {
       setBulkDeleting(false);
     }
@@ -220,9 +219,14 @@ function ProductsPageContent() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+        className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+      >
         <div>
-          <h1 className="text-2xl font-bold">Ürünler</h1>
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Ürünler</h1>
           <p className="text-muted-foreground">
             Katalog, stok ve pazaryeri eşleştirmeleri. Mağaza ve kategori klasörlerine tıklayarak gezinin.
           </p>
@@ -265,10 +269,10 @@ function ProductsPageContent() {
             </Link>
           </Button>
         </div>
-      </div>
+      </motion.div>
 
       {viewMode === 'folder' ? (
-        <Card>
+        <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FolderTree className="h-5 w-5" />
@@ -283,7 +287,7 @@ function ProductsPageContent() {
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Package className="h-5 w-5" />
@@ -355,32 +359,16 @@ function ProductsPageContent() {
           {loading ? (
             <p className="py-12 text-center text-sm text-muted-foreground">Yükleniyor…</p>
           ) : products.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
-              <Package className="h-12 w-12 text-muted-foreground" />
-              <div>
-                <p className="font-medium">Henüz ürün yok</p>
-                <p className="text-sm text-muted-foreground">
-                  Yeni ürün ekleyin, XML import ile toplu yükleyin veya pazaryeri senkronundan ürünler gelsin.
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => {
-                    setEditingProductId(null);
-                    setProductFormOpen(true);
-                  }}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Yeni ürün
-                </Button>
-                <Button variant="outline" asChild>
-                  <Link href="/xml-wizard">
-                    <FileCode2 className="mr-2 h-4 w-4" />
-                    XML Sihirbazı
-                  </Link>
-                </Button>
-              </div>
-            </div>
+            <EmptyState
+              icon={Package}
+              title="Henüz ürün yok"
+              description="Yeni ürün ekleyin, XML import ile toplu yükleyin veya pazaryeri senkronundan ürünler gelsin."
+              actionLabel="Yeni ürün"
+              onAction={() => {
+                setEditingProductId(null);
+                setProductFormOpen(true);
+              }}
+            />
           ) : (
             <>
               <div className="overflow-x-auto rounded-md border">
@@ -407,7 +395,12 @@ function ProductsPageContent() {
                   </thead>
                   <tbody>
                     {products.map((p) => (
-                      <tr key={p.id} className="border-b last:border-0 hover:bg-muted/30">
+                      <motion.tr
+                        key={p.id}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="border-b last:border-0 transition-colors hover:bg-muted/40"
+                      >
                         <td className="px-4 py-3 w-12">
                           <input
                             type="checkbox"
@@ -497,7 +490,7 @@ function ProductsPageContent() {
                             </Button>
                           </div>
                         </td>
-                      </tr>
+                      </motion.tr>
                     ))}
                   </tbody>
                 </table>

@@ -3,6 +3,7 @@ import { AppSidebar } from '@/components/app-sidebar';
 import { SIDEBAR_WIDTH_PX } from '@/components/app-sidebar';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { QuickSyncPopover } from '@/components/sync/QuickSyncPopover';
+import { CommandPalette } from '@/components/command-palette';
 
 export default function DashboardLayout({
   children,
@@ -36,6 +37,7 @@ export default function DashboardLayout({
           <main className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
             {children}
           </main>
+          <CommandPalette />
         </div>
       </div>
     </SidebarProvider>

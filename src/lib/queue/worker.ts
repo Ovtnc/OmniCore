@@ -213,7 +213,7 @@ async function processMarketplaceSync(job: Job<JobDataMap['marketplace-sync']>) 
     stockQuantity: product.stockQuantity,
     quantity: product.stockQuantity,
     images: product.images.map((img) => ({ url: img.url })),
-    brandId: trendyolBrandId ?? undefined,
+    brandId: trendyolBrandId != null ? String(trendyolBrandId) : undefined,
     categoryId: trendyolCategoryId != null ? String(trendyolCategoryId) : undefined,
   };
 
@@ -383,7 +383,7 @@ async function processOrderSync(job: Job<JobDataMap['order-sync']>) {
         },
       });
     }
-    return { processed: true, storeId, platform, ...result };
+    return { processed: true, platform, ...result };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     if (dbJobId) {

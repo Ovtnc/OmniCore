@@ -1,13 +1,34 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import type { OrderStatus, PaymentStatus, MarketplacePlatform } from '@prisma/client';
+import { assertStoreAccess } from '@/lib/api-store-access';
+import { auth } from '@/auth';
 
-/** GET - Sipariş listesi (storeId, status, platform, paymentStatus, dateFrom, dateTo, sayfalama) */
+/** GET - Sipariş listesi (storeId, status, platform, paymentStatus, dateFrom, dateTo, sayfalama). Veri izolasyonu: storeId tenant'a ait olmalı. */
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const storeId = searchParams.get('storeId');
     const status = searchParams.get('status') as OrderStatus | null;
+
+    let allowedStoreIds: string[] | null = null;
+    if (storeId) {
+      const access = await assertStoreAccess(storeId);
+      if (!access.ok) {
+        return NextResponse.json({ error: access.error }, { status: access.status });
+      }
+      allowedStoreIds = [storeId];
+    } else {
+      const session = await auth();
+      const tenantId = session?.user && 'tenantId' in session.user ? (session.user as { tenantId?: string }).tenantId : null;
+      if (tenantId) {
+        const ids = await prisma.store.findMany({ where: { tenantId }, select: { id: true } }).then((s) => s.map((x) => x.id));
+        if (ids.length === 0) {
+          return NextResponse.json({ orders: [], total: 0, page: 1, limit: 20, totalPages: 0 });
+        }
+        allowedStoreIds = ids;
+      }
+    }
     const platform = searchParams.get('platform');
     const paymentStatus = searchParams.get('paymentStatus') as PaymentStatus | null;
     const dateFrom = searchParams.get('dateFrom');
@@ -17,14 +38,19 @@ export async function GET(req: Request) {
     const skip = (page - 1) * limit;
 
     const where: {
-      storeId?: string;
-      status?: OrderStatus;
+      storeId?: string | { in: string[] };
+      status?: OrderStatus | { in: OrderStatus[] };
       platform?: MarketplacePlatform;
       paymentStatus?: PaymentStatus;
       createdAt?: { gte?: Date; lte?: Date };
     } = {};
-    if (storeId) where.storeId = storeId;
-    if (status) where.status = status;
+    if (allowedStoreIds?.length === 1) where.storeId = allowedStoreIds[0]!;
+    else if (allowedStoreIds && allowedStoreIds.length > 1) where.storeId = { in: allowedStoreIds };
+    else if (storeId) where.storeId = storeId;
+    if (status) {
+      const statuses = status.split(',').map((s) => s.trim()) as OrderStatus[];
+      where.status = statuses.length === 1 ? statuses[0]! : { in: statuses };
+    }
     if (platform) where.platform = platform as MarketplacePlatform;
     if (paymentStatus) where.paymentStatus = paymentStatus;
     if (dateFrom || dateTo) {
